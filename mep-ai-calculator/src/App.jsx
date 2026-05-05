@@ -1,13 +1,17 @@
-import "./App.css";
-import CoolingLoadCalculator from "./components/CoolingLoadCalculator";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Landing from "./pages/Landing";
+import Calculator from "./pages/Calculator";
+import Navbar from "./components/Navbar";
 
-function App() {
+export default function App() {
   return (
-    <div>
-      <h1>MEP AI Tools</h1>
-      <CoolingLoadCalculator />
-    </div>
+    <BrowserRouter>
+      <Navbar />
+
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/calculator" element={<Calculator />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
