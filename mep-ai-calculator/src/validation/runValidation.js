@@ -20,6 +20,12 @@ import {
   testEquipmentLatentLoad,
   testEquipmentUseFactor,
 } from "./equipmentLoad.test";
+import {
+  testOutdoorAirflowPeopleAndArea,
+  testOutdoorAirflowWithEffectiveness,
+  testVentilationSensibleLoad,
+  testVentilationLatentAndTotalLoad,
+} from "./ventilationLoad.test";
 
 export const runValidation = () => {
   const tests = [
@@ -37,6 +43,10 @@ export const runValidation = () => {
     { id: "UNIT-EQUIP-001", name: "Equipment Sensible Load", run: testEquipmentLoad },
     { id: "UNIT-EQUIP-002", name: "Equipment Sensible and Latent Load", run: testEquipmentLatentLoad },
     { id: "UNIT-EQUIP-003", name: "Equipment Use Factor Load", run: testEquipmentUseFactor },
+    { id: "UNIT-VENT-001", name: "Outdoor Airflow People and Area", run: testOutdoorAirflowPeopleAndArea },
+    { id: "UNIT-VENT-002", name: "Outdoor Airflow Effectiveness", run: testOutdoorAirflowWithEffectiveness },
+    { id: "UNIT-VENT-003", name: "Ventilation Sensible Load", run: testVentilationSensibleLoad },
+    { id: "UNIT-VENT-004", name: "Ventilation Latent and Total Load", run: testVentilationLatentAndTotalLoad },
   ];
 
   const results = tests.map(({ id, name, run }) => {
