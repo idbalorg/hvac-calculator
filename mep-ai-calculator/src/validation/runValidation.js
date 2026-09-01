@@ -1,25 +1,33 @@
 import { testCase001 } from "./testCase001";
+import { testWallLoad } from "./wallLoad.test";
 
 export const runValidation = () => {
-  const testCases = [testCase001];
-  const results = [];
+  const tests = [
+    { id: "TC-001", name: "Lagos Small Office", run: testCase001 },
+    { id: "UNIT-WALL-001", name: "Opaque Wall Load", run: testWallLoad },
+  ];
 
-  for (const testCase of testCases) {
+  const results = tests.map(({ id, name, run }) => {
     try {
-      results.push(testCase());
+      const result = run();
+      return {
+        id,
+        name,
+        status: "PASS",
+        result,
+      };
     } catch (error) {
-      results.push({
-        id: testCase.name,
+      return {
+        id,
+        name,
         status: "FAIL",
         error: error instanceof Error ? error.message : String(error),
-      });
+      };
     }
-  }
-
-  const passed = results.every((result) => result.status === "PASS");
+  });
 
   return {
-    passed,
+    passed: results.every((result) => result.status === "PASS"),
     total: results.length,
     passedCount: results.filter((result) => result.status === "PASS").length,
     failedCount: results.filter((result) => result.status === "FAIL").length,
@@ -33,10 +41,10 @@ console.log("HVAC Engineering Validation");
 console.log("===========================");
 console.log(`Status: ${validationResult.passed ? "PASS" : "FAIL"}`);
 console.log(
-  `Test cases: ${validationResult.passedCount}/${validationResult.total} passed`,
+  `Tests: ${validationResult.passedCount}/${validationResult.total} passed`,
 );
 
 for (const result of validationResult.results) {
-  console.log(`${result.id}: ${result.status}`);
+  console.log(`${result.id} | ${result.name} | ${result.status}`);
   if (result.error) console.error(`  ${result.error}`);
 }
