@@ -10,6 +10,11 @@ import {
   testPeopleLoad,
   testPeopleLoadWithDiversity,
 } from "./peopleLoad.test";
+import {
+  testLightingPowerDensity,
+  testLightingFixtureSchedule,
+  testLightingUseFactor,
+} from "./lightingLoad.test";
 
 export const runValidation = () => {
   const tests = [
@@ -21,6 +26,9 @@ export const runValidation = () => {
     { id: "UNIT-WINDOW-003", name: "Combined Window Load", run: testWindowCombinedLoad },
     { id: "UNIT-PEOPLE-001", name: "Occupant Sensible and Latent Load", run: testPeopleLoad },
     { id: "UNIT-PEOPLE-002", name: "Occupant Diversity Load", run: testPeopleLoadWithDiversity },
+    { id: "UNIT-LIGHT-001", name: "Lighting Power Density Load", run: testLightingPowerDensity },
+    { id: "UNIT-LIGHT-002", name: "Lighting Fixture Schedule Load", run: testLightingFixtureSchedule },
+    { id: "UNIT-LIGHT-003", name: "Lighting Use Factor Load", run: testLightingUseFactor },
   ];
 
   const results = tests.map(({ id, name, run }) => {
