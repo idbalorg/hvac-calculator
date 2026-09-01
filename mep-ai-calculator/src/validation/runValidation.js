@@ -26,6 +26,12 @@ import {
   testVentilationSensibleLoad,
   testVentilationLatentAndTotalLoad,
 } from "./ventilationLoad.test";
+import {
+  testInfiltrationAirflowFromACH,
+  testInfiltrationZeroACH,
+  testInfiltrationSensibleLoad,
+  testInfiltrationLatentAndTotalLoad,
+} from "./infiltrationLoad.test";
 
 export const runValidation = () => {
   const tests = [
@@ -47,6 +53,10 @@ export const runValidation = () => {
     { id: "UNIT-VENT-002", name: "Outdoor Airflow Effectiveness", run: testOutdoorAirflowWithEffectiveness },
     { id: "UNIT-VENT-003", name: "Ventilation Sensible Load", run: testVentilationSensibleLoad },
     { id: "UNIT-VENT-004", name: "Ventilation Latent and Total Load", run: testVentilationLatentAndTotalLoad },
+    { id: "UNIT-INF-001", name: "Infiltration Airflow from ACH", run: testInfiltrationAirflowFromACH },
+    { id: "UNIT-INF-002", name: "Zero ACH Infiltration", run: testInfiltrationZeroACH },
+    { id: "UNIT-INF-003", name: "Infiltration Sensible Load", run: testInfiltrationSensibleLoad },
+    { id: "UNIT-INF-004", name: "Infiltration Latent and Total Load", run: testInfiltrationLatentAndTotalLoad },
   ];
 
   const results = tests.map(({ id, name, run }) => {
