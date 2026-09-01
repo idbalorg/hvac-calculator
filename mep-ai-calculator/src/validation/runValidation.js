@@ -38,6 +38,12 @@ import {
   testRoomLoadDesignMargin,
   testRoomLoadZero,
 } from "./roomLoad.test";
+import {
+  testSupplyAirflow,
+  testSupplyAirState,
+  testMixedAir,
+  testCoilLoad,
+} from "./airside.test";
 
 export const runValidation = () => {
   const tests = [
@@ -67,6 +73,10 @@ export const runValidation = () => {
     { id: "UNIT-ROOM-002", name: "Room Load Missing Components", run: testRoomLoadMissingComponents },
     { id: "UNIT-ROOM-003", name: "Room Load Design Margin", run: testRoomLoadDesignMargin },
     { id: "UNIT-ROOM-004", name: "Zero Room Load", run: testRoomLoadZero },
+    { id: "UNIT-AIR-001", name: "Supply Airflow", run: testSupplyAirflow },
+    { id: "UNIT-AIR-002", name: "Supply Air State", run: testSupplyAirState },
+    { id: "UNIT-AIR-003", name: "Mixed Air State", run: testMixedAir },
+    { id: "UNIT-AIR-004", name: "Cooling Coil Load", run: testCoilLoad },
   ];
 
   const results = tests.map(({ id, name, run }) => {
