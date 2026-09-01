@@ -32,6 +32,12 @@ import {
   testInfiltrationSensibleLoad,
   testInfiltrationLatentAndTotalLoad,
 } from "./infiltrationLoad.test";
+import {
+  testRoomLoadAssembly,
+  testRoomLoadMissingComponents,
+  testRoomLoadDesignMargin,
+  testRoomLoadZero,
+} from "./roomLoad.test";
 
 export const runValidation = () => {
   const tests = [
@@ -57,6 +63,10 @@ export const runValidation = () => {
     { id: "UNIT-INF-002", name: "Zero ACH Infiltration", run: testInfiltrationZeroACH },
     { id: "UNIT-INF-003", name: "Infiltration Sensible Load", run: testInfiltrationSensibleLoad },
     { id: "UNIT-INF-004", name: "Infiltration Latent and Total Load", run: testInfiltrationLatentAndTotalLoad },
+    { id: "UNIT-ROOM-001", name: "Room Load Assembly", run: testRoomLoadAssembly },
+    { id: "UNIT-ROOM-002", name: "Room Load Missing Components", run: testRoomLoadMissingComponents },
+    { id: "UNIT-ROOM-003", name: "Room Load Design Margin", run: testRoomLoadDesignMargin },
+    { id: "UNIT-ROOM-004", name: "Zero Room Load", run: testRoomLoadZero },
   ];
 
   const results = tests.map(({ id, name, run }) => {
