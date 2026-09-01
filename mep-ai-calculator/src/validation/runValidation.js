@@ -1,12 +1,32 @@
 import { testCase001 } from "./testCase001";
 import { testWallLoad } from "./wallLoad.test";
 import { testRoofLoad } from "./roofLoad.test";
+import {
+  testWindowConduction,
+  testWindowSolarGain,
+  testWindowCombinedLoad,
+} from "./windowLoad.test";
 
 export const runValidation = () => {
   const tests = [
     { id: "TC-001", name: "Lagos Small Office", run: testCase001 },
     { id: "UNIT-WALL-001", name: "Opaque Wall Load", run: testWallLoad },
     { id: "UNIT-ROOF-001", name: "Roof Load", run: testRoofLoad },
+    {
+      id: "UNIT-WINDOW-001",
+      name: "Window Conduction Load",
+      run: testWindowConduction,
+    },
+    {
+      id: "UNIT-WINDOW-002",
+      name: "Window Solar Gain",
+      run: testWindowSolarGain,
+    },
+    {
+      id: "UNIT-WINDOW-003",
+      name: "Combined Window Load",
+      run: testWindowCombinedLoad,
+    },
   ];
 
   const results = tests.map(({ id, name, run }) => {
