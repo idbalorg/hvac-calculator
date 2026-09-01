@@ -15,6 +15,11 @@ import {
   testLightingFixtureSchedule,
   testLightingUseFactor,
 } from "./lightingLoad.test";
+import {
+  testEquipmentLoad,
+  testEquipmentLatentLoad,
+  testEquipmentUseFactor,
+} from "./equipmentLoad.test";
 
 export const runValidation = () => {
   const tests = [
@@ -29,6 +34,9 @@ export const runValidation = () => {
     { id: "UNIT-LIGHT-001", name: "Lighting Power Density Load", run: testLightingPowerDensity },
     { id: "UNIT-LIGHT-002", name: "Lighting Fixture Schedule Load", run: testLightingFixtureSchedule },
     { id: "UNIT-LIGHT-003", name: "Lighting Use Factor Load", run: testLightingUseFactor },
+    { id: "UNIT-EQUIP-001", name: "Equipment Sensible Load", run: testEquipmentLoad },
+    { id: "UNIT-EQUIP-002", name: "Equipment Sensible and Latent Load", run: testEquipmentLatentLoad },
+    { id: "UNIT-EQUIP-003", name: "Equipment Use Factor Load", run: testEquipmentUseFactor },
   ];
 
   const results = tests.map(({ id, name, run }) => {
