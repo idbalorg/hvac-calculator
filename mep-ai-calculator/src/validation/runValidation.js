@@ -1,10 +1,12 @@
 import { testCase001 } from "./testCase001";
 import { testWallLoad } from "./wallLoad.test";
+import { testRoofLoad } from "./roofLoad.test";
 
 export const runValidation = () => {
   const tests = [
     { id: "TC-001", name: "Lagos Small Office", run: testCase001 },
     { id: "UNIT-WALL-001", name: "Opaque Wall Load", run: testWallLoad },
+    { id: "UNIT-ROOF-001", name: "Roof Load", run: testRoofLoad },
   ];
 
   const results = tests.map(({ id, name, run }) => {
