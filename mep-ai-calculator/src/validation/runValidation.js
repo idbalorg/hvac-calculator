@@ -10,12 +10,7 @@ export const runValidation = () => {
   const results = tests.map(({ id, name, run }) => {
     try {
       const result = run();
-      return {
-        id,
-        name,
-        status: "PASS",
-        result,
-      };
+      return { id, name, status: "PASS", result };
     } catch (error) {
       return {
         id,
@@ -47,4 +42,8 @@ console.log(
 for (const result of validationResult.results) {
   console.log(`${result.id} | ${result.name} | ${result.status}`);
   if (result.error) console.error(`  ${result.error}`);
+}
+
+if (!validationResult.passed) {
+  process.exitCode = 1;
 }
