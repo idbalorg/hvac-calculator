@@ -42,7 +42,12 @@ export const runDuctSizingTests = () => {
   });
 
   run("UNIT-DUCT-004", "Rectangular hydraulic diameter", () => {
-    assertClose(hydraulicDiameterRectangular(0.6, 0.35), 0.43789473684210525, 1e-12, "hydraulic diameter");
+    assertClose(
+      hydraulicDiameterRectangular(0.6, 0.35),
+      (4 * 0.6 * 0.35) / (2 * (0.6 + 0.35)),
+      1e-12,
+      "hydraulic diameter",
+    );
   });
 
   run("UNIT-DUCT-005", "Rectangular equivalent diameter", () => {
