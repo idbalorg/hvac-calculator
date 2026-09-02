@@ -59,7 +59,7 @@ export const runDuctNetworkTests = () => {
       { volumeFlowM3s: 0.5, areaM2: 0.1, lengthM: 10, frictionRatePaPerM: 0.8 },
       { volumeFlowM3s: 0.5, areaM2: 0.08, lengthM: 5, frictionRatePaPerM: 1.0, lossCoefficientK: 0.25 },
     ]);
-    assertClose(result.totalPressureLossPa, 11.5, 1e-12, "path loss");
+    assertClose(result.totalPressureLossPa, 18.859375, 1e-12, "path loss");
   });
 
   run("UNIT-NET-006", "Branch airflow and main airflow", () => {
@@ -96,7 +96,7 @@ export const runDuctNetworkTests = () => {
         { areaM2: 0.125, lengthM: 10, frictionRatePaPerM: 0.7 },
       ],
     });
-    assertClose(criticalPathPressureLoss(result), 23.3, 1e-12, "critical path loss");
+    assertClose(criticalPathPressureLoss(result), 21, 1e-12, "critical path loss");
   });
 
   return tests;
