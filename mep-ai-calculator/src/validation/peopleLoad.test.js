@@ -1,5 +1,5 @@
-import { calculatePeopleLoad } from "../engineering/cooling-load/people";
-import { assertClose } from "./assert";
+import { calculatePeopleLoad } from "../engineering/cooling-load/people.js";
+import { assertClose } from "./assert.js";
 
 /**
  * Isolated occupant-load validation.

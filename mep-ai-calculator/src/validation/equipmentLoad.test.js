@@ -1,5 +1,5 @@
-import { calculateEquipmentLoad } from "../engineering/cooling-load/equipment";
-import { assertClose } from "./assert";
+import { calculateEquipmentLoad } from "../engineering/cooling-load/equipment.js";
+import { assertClose } from "./assert.js";
 
 export const testEquipmentLoad = () => {
   const result = calculateEquipmentLoad({
@@ -24,9 +24,19 @@ export const testEquipmentLatentLoad = () => {
     ],
   });
 
-  assertClose(result.sensible, 800, 1e-9, "Equipment sensible load with latent");
+  assertClose(
+    result.sensible,
+    800,
+    1e-9,
+    "Equipment sensible load with latent",
+  );
   assertClose(result.latent, 200, 1e-9, "Equipment latent load");
-  return assertClose(result.total, 1000, 1e-9, "Equipment total load with latent");
+  return assertClose(
+    result.total,
+    1000,
+    1e-9,
+    "Equipment total load with latent",
+  );
 };
 
 export const testEquipmentUseFactor = () => {

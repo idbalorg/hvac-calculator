@@ -1,5 +1,5 @@
-import { calculateRoofLoad } from "../engineering/cooling-load/roof";
-import { assertClose } from "./assert";
+import { calculateRoofLoad } from "../engineering/cooling-load/roof.js";
+import { assertClose } from "./assert.js";
 
 /**
  * Isolated roof-load validation.

@@ -1,12 +1,12 @@
-import { createRoom } from "../models/room";
-import { createDesignConditions } from "../models/designConditions";
+import { createRoom } from "../models/room.js";
+import { createDesignConditions } from "../models/designConditions.js";
 import {
   humidityRatioFromRelativeHumidity,
   humidityRatioFromWetBulb,
   relativeHumidityFromHumidityRatio,
-} from "../engineering/psychrometrics/humidityRatio";
-import { moistAirEnthalpy } from "../engineering/psychrometrics/enthalpy";
-import { assertClose, assertEqual } from "./assert";
+} from "../engineering/psychrometrics/humidityRatio.js";
+import { moistAirEnthalpy } from "../engineering/psychrometrics/enthalpy.js";
+import { assertClose, assertEqual } from "./assert.js";
 
 /**
  * Test Case 001: Lagos Small Office
@@ -72,7 +72,12 @@ export const testCase001 = () => {
     assertClose(volume, 90, 1e-9, "Room volume"),
     assertEqual(room.occupancy.people, 6, "Occupancy"),
     assertEqual(room.equipment[0].quantity, 6, "Computer quantity"),
-    assertClose(room.surfaces.windows[0].width * room.surfaces.windows[0].height, 6, 1e-9, "Window area"),
+    assertClose(
+      room.surfaces.windows[0].width * room.surfaces.windows[0].height,
+      6,
+      1e-9,
+      "Window area",
+    ),
     assertClose(indoorRHCheck, 50, 0.05, "Indoor RH round-trip"),
   ];
 

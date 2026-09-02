@@ -1,8 +1,8 @@
 import {
   assembleRoomCoolingLoad,
   applyDesignMargin,
-} from "../engineering/cooling-load/roomLoad";
-import { assertClose } from "./assert";
+} from "../engineering/cooling-load/roomLoad.js";
+import { assertClose } from "./assert.js";
 
 export const testRoomLoadAssembly = () => {
   const result = assembleRoomCoolingLoad({
@@ -19,7 +19,12 @@ export const testRoomLoadAssembly = () => {
   assertClose(result.sensibleW, 5750, 1e-9, "Room sensible load");
   assertClose(result.latentW, 3830, 1e-9, "Room latent load");
   assertClose(result.totalW, 9580, 1e-9, "Room total load");
-  return assertClose(result.sensibleHeatRatio, 5750 / 9580, 1e-12, "Room sensible heat ratio");
+  return assertClose(
+    result.sensibleHeatRatio,
+    5750 / 9580,
+    1e-12,
+    "Room sensible heat ratio",
+  );
 };
 
 export const testRoomLoadMissingComponents = () => {
@@ -51,5 +56,10 @@ export const testRoomLoadZero = () => {
   assertClose(result.sensibleW, 0, 1e-9, "Zero sensible load");
   assertClose(result.latentW, 0, 1e-9, "Zero latent load");
   assertClose(result.totalW, 0, 1e-9, "Zero total load");
-  return assertClose(result.sensibleHeatRatio, 0, 1e-9, "Zero sensible heat ratio");
+  return assertClose(
+    result.sensibleHeatRatio,
+    0,
+    1e-9,
+    "Zero sensible heat ratio",
+  );
 };

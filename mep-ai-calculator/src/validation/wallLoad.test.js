@@ -1,5 +1,5 @@
-import { calculateWallLoad } from "../engineering/cooling-load/walls";
-import { assertClose } from "./assert";
+import { calculateWallLoad } from "../engineering/cooling-load/walls.js";
+import { assertClose } from "./assert.js";
 
 /**
  * Isolated wall-load validation.

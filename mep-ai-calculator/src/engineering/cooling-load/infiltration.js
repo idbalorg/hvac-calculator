@@ -12,8 +12,8 @@
  * Positive loads represent cooling required from warmer/more humid outdoor air.
  */
 
-import { humidityRatioFromRelativeHumidity } from "../psychrometrics/humidityRatio";
-import { moistAirEnthalpy } from "../psychrometrics/enthalpy";
+import { humidityRatioFromRelativeHumidity } from "../psychrometrics/humidityRatio.js";
+import { moistAirEnthalpy } from "../psychrometrics/enthalpy.js";
 
 const AIR_DENSITY_KG_M3 = 1.2;
 const CP_AIR_KJ_KG_K = 1.006;
@@ -79,10 +79,16 @@ export const calculateInfiltrationLoad = ({
     if (!Number.isFinite(value)) throw new Error(`${label} must be finite.`);
   });
 
-  if (indoorRelativeHumidityPercent < 0 || indoorRelativeHumidityPercent > 100) {
+  if (
+    indoorRelativeHumidityPercent < 0 ||
+    indoorRelativeHumidityPercent > 100
+  ) {
     throw new Error("Indoor relative humidity must be between 0 and 100%.");
   }
-  if (outdoorRelativeHumidityPercent < 0 || outdoorRelativeHumidityPercent > 100) {
+  if (
+    outdoorRelativeHumidityPercent < 0 ||
+    outdoorRelativeHumidityPercent > 100
+  ) {
     throw new Error("Outdoor relative humidity must be between 0 and 100%.");
   }
 
@@ -105,7 +111,10 @@ export const calculateInfiltrationLoad = ({
   const dryAirMassFlowKgS = moistAirMassFlowKgS / (1 + outdoorW);
 
   const sensibleW =
-    moistAirMassFlowKgS * CP_AIR_KJ_KG_K * (outdoorDryBulbC - indoorDryBulbC) * 1000;
+    moistAirMassFlowKgS *
+    CP_AIR_KJ_KG_K *
+    (outdoorDryBulbC - indoorDryBulbC) *
+    1000;
 
   const totalW =
     dryAirMassFlowKgS * (outdoorH - indoorH) * 1000 * DRY_AIR_FACTOR;

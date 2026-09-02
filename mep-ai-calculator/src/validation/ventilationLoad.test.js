@@ -1,8 +1,8 @@
 import {
   calculateOutdoorAirflow,
   calculateVentilationLoad,
-} from "../engineering/cooling-load/ventilation";
-import { assertClose } from "./assert";
+} from "../engineering/cooling-load/ventilation.js";
+import { assertClose } from "./assert.js";
 
 export const testOutdoorAirflowPeopleAndArea = () => {
   const result = calculateOutdoorAirflow({
@@ -12,9 +12,19 @@ export const testOutdoorAirflowPeopleAndArea = () => {
     outdoorAirPerAreaLpsM2: 0.3,
   });
 
-  assertClose(result.peopleComponentLps, 60, 1e-9, "Outdoor air people component");
+  assertClose(
+    result.peopleComponentLps,
+    60,
+    1e-9,
+    "Outdoor air people component",
+  );
   assertClose(result.areaComponentLps, 9, 1e-9, "Outdoor air area component");
-  return assertClose(result.requiredOutdoorAirLps, 69, 1e-9, "Required outdoor airflow");
+  return assertClose(
+    result.requiredOutdoorAirLps,
+    69,
+    1e-9,
+    "Required outdoor airflow",
+  );
 };
 
 export const testOutdoorAirflowWithEffectiveness = () => {
@@ -26,7 +36,12 @@ export const testOutdoorAirflowWithEffectiveness = () => {
     effectiveness: 0.9,
   });
 
-  return assertClose(result.requiredOutdoorAirLps, 76.66666666666667, 1e-9, "Effective outdoor airflow");
+  return assertClose(
+    result.requiredOutdoorAirLps,
+    76.66666666666667,
+    1e-9,
+    "Effective outdoor airflow",
+  );
 };
 
 export const testVentilationSensibleLoad = () => {
@@ -38,7 +53,12 @@ export const testVentilationSensibleLoad = () => {
     outdoorRelativeHumidityPercent: 70,
   });
 
-  return assertClose(result.sensibleW, 1207.2, 1e-9, "Ventilation sensible load");
+  return assertClose(
+    result.sensibleW,
+    1207.2,
+    1e-9,
+    "Ventilation sensible load",
+  );
 };
 
 export const testVentilationLatentAndTotalLoad = () => {
@@ -51,6 +71,11 @@ export const testVentilationLatentAndTotalLoad = () => {
   });
 
   assertClose(result.totalW, 5530.0, 20, "Ventilation total load");
-  assertClose(result.latentW, result.totalW - result.sensibleW, 1e-9, "Ventilation latent load");
+  assertClose(
+    result.latentW,
+    result.totalW - result.sensibleW,
+    1e-9,
+    "Ventilation latent load",
+  );
   return result;
 };

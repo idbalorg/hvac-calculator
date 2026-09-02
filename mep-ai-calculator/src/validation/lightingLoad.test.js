@@ -1,8 +1,8 @@
 import {
   calculateLightingLoadByPowerDensity,
   calculateLightingLoadByFixtures,
-} from "../engineering/cooling-load/lighting";
-import { assertClose } from "./assert";
+} from "../engineering/cooling-load/lighting.js";
+import { assertClose } from "./assert.js";
 
 export const testLightingPowerDensity = () => {
   const result = calculateLightingLoadByPowerDensity({

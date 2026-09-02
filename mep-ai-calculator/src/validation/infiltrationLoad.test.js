@@ -1,8 +1,8 @@
 import {
   calculateInfiltrationAirflow,
   calculateInfiltrationLoad,
-} from "../engineering/cooling-load/infiltration";
-import { assertClose } from "./assert";
+} from "../engineering/cooling-load/infiltration.js";
+import { assertClose } from "./assert.js";
 
 export const testInfiltrationAirflowFromACH = () => {
   const result = calculateInfiltrationAirflow({
@@ -20,7 +20,12 @@ export const testInfiltrationZeroACH = () => {
     airChangesPerHour: 0,
   });
 
-  return assertClose(result.airflowLps, 0, 1e-9, "Zero ACH infiltration airflow");
+  return assertClose(
+    result.airflowLps,
+    0,
+    1e-9,
+    "Zero ACH infiltration airflow",
+  );
 };
 
 export const testInfiltrationSensibleLoad = () => {
@@ -32,7 +37,12 @@ export const testInfiltrationSensibleLoad = () => {
     outdoorRelativeHumidityPercent: 70,
   });
 
-  return assertClose(result.sensibleW, 1207.2, 1e-9, "Infiltration sensible load");
+  return assertClose(
+    result.sensibleW,
+    1207.2,
+    1e-9,
+    "Infiltration sensible load",
+  );
 };
 
 export const testInfiltrationLatentAndTotalLoad = () => {
@@ -44,7 +54,17 @@ export const testInfiltrationLatentAndTotalLoad = () => {
     outdoorRelativeHumidityPercent: 70,
   });
 
-  assertClose(result.totalW, 3720.590508858974, 1e-9, "Infiltration total load");
-  assertClose(result.latentW, 2513.390508858974, 1e-9, "Infiltration latent load");
+  assertClose(
+    result.totalW,
+    3720.590508858974,
+    1e-9,
+    "Infiltration total load",
+  );
+  assertClose(
+    result.latentW,
+    2513.390508858974,
+    1e-9,
+    "Infiltration latent load",
+  );
   return result;
 };

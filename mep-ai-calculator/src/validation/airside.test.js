@@ -1,5 +1,8 @@
 import { assertClose, assertEqual } from "./assert.js";
-import { calculateSupplyAirflow, calculateSupplyAirState } from "../engineering/airside/supplyAir.js";
+import {
+  calculateSupplyAirflow,
+  calculateSupplyAirState,
+} from "../engineering/airside/supplyAir.js";
 import { calculateMixedAir } from "../engineering/airside/mixedAir.js";
 import { calculateCoilLoad } from "../engineering/airside/coilLoad.js";
 import { humidityRatioFromRelativeHumidity } from "../engineering/psychrometrics/humidityRatio.js";
@@ -24,7 +27,12 @@ export const testSupplyAirState = () => {
     supplyDryBulbC: 14,
   });
   assertClose(result.dryBulbC, 14, 0.0001, "Supply dry bulb");
-  assertClose(result.humidityRatioKgKg, roomW - 1500 / (result.massFlowKgDryAirS * 2501 * 1000), 1e-9, "Supply humidity ratio");
+  assertClose(
+    result.humidityRatioKgKg,
+    roomW - 1500 / (result.massFlowKgDryAirS * 2501 * 1000),
+    1e-9,
+    "Supply humidity ratio",
+  );
 };
 
 export const testMixedAir = () => {
@@ -34,7 +42,13 @@ export const testMixedAir = () => {
     outdoorAirFraction: 0.2,
   });
   assertClose(result.dryBulbC, 26, 0.0001, "Mixed-air dry bulb");
-  assertClose(result.humidityRatioKgKg, 0.8 * humidityRatioFromRelativeHumidity(24, 50) + 0.2 * humidityRatioFromRelativeHumidity(34, 70), 1e-9, "Mixed-air humidity ratio");
+  assertClose(
+    result.humidityRatioKgKg,
+    0.8 * humidityRatioFromRelativeHumidity(24, 50) +
+      0.2 * humidityRatioFromRelativeHumidity(34, 70),
+    1e-9,
+    "Mixed-air humidity ratio",
+  );
 };
 
 export const testCoilLoad = () => {
@@ -45,7 +59,16 @@ export const testCoilLoad = () => {
     leavingAir: { dryBulbC: 14, humidityRatioKgKg: leavingW },
     volumeFlowM3s: 0.5,
   });
-  assertEqual(result.totalLoadW > result.sensibleLoadW, true, "Coil total exceeds sensible");
+  assertEqual(
+    result.totalLoadW > result.sensibleLoadW,
+    true,
+    "Coil total exceeds sensible",
+  );
   assertEqual(result.latentLoadW > 0, true, "Coil latent load positive");
-  assertClose(result.totalLoadW, result.sensibleLoadW + result.latentLoadW, 1e-6, "Coil load balance");
+  assertClose(
+    result.totalLoadW,
+    result.sensibleLoadW + result.latentLoadW,
+    1e-6,
+    "Coil load balance",
+  );
 };

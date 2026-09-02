@@ -2,8 +2,8 @@ import {
   calculateWindowConduction,
   calculateWindowSolarGain,
   calculateWindowLoad,
-} from "../engineering/cooling-load/windows";
-import { assertClose } from "./assert";
+} from "../engineering/cooling-load/windows.js";
+import { assertClose } from "./assert.js";
 
 export const testWindowConduction = () => {
   const result = calculateWindowConduction({

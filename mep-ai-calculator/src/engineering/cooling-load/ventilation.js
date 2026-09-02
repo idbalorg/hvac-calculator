@@ -9,8 +9,8 @@
  * does not claim blanket ASHRAE 62.1 compliance by itself.
  */
 
-import { humidityRatioFromRelativeHumidity } from "../psychrometrics/humidityRatio";
-import { moistAirEnthalpy } from "../psychrometrics/enthalpy";
+import { humidityRatioFromRelativeHumidity } from "../psychrometrics/humidityRatio.js";
+import { moistAirEnthalpy } from "../psychrometrics/enthalpy.js";
 
 const DEFAULT_AIR_DENSITY_KG_M3 = 1.2;
 const DEFAULT_CP_AIR_J_KG_K = 1006;
@@ -49,7 +49,8 @@ export const calculateOutdoorAirflow = ({
 
   const peopleComponentLps = people * outdoorAirPerPersonLps;
   const areaComponentLps = areaM2 * outdoorAirPerAreaLpsM2;
-  const requiredOutdoorAirLps = (peopleComponentLps + areaComponentLps) / effectiveness;
+  const requiredOutdoorAirLps =
+    (peopleComponentLps + areaComponentLps) / effectiveness;
 
   return {
     peopleComponentLps,
@@ -115,7 +116,10 @@ export const calculateVentilationLoad = ({
   );
 
   const indoorEnthalpy = moistAirEnthalpy(indoorDryBulbC, indoorHumidityRatio);
-  const outdoorEnthalpy = moistAirEnthalpy(outdoorDryBulbC, outdoorHumidityRatio);
+  const outdoorEnthalpy = moistAirEnthalpy(
+    outdoorDryBulbC,
+    outdoorHumidityRatio,
+  );
 
   const moistAirMassFlowKgS = airDensityKgM3 * airflowM3s;
   const dryAirMassFlowKgS = moistAirMassFlowKgS / (1 + outdoorHumidityRatio);
@@ -124,7 +128,10 @@ export const calculateVentilationLoad = ({
     0,
     moistAirMassFlowKgS * cpAirJKgK * (outdoorDryBulbC - indoorDryBulbC),
   );
-  const totalW = Math.max(0, dryAirMassFlowKgS * 1000 * (outdoorEnthalpy - indoorEnthalpy));
+  const totalW = Math.max(
+    0,
+    dryAirMassFlowKgS * 1000 * (outdoorEnthalpy - indoorEnthalpy),
+  );
   const latentW = Math.max(0, totalW - sensibleW);
 
   return {
