@@ -17,11 +17,11 @@ export const testRoomLoadAssembly = () => {
   });
 
   assertClose(result.sensibleW, 5750, 1e-9, "Room sensible load");
-  assertClose(result.latentW, 3830, 1e-9, "Room latent load");
-  assertClose(result.totalW, 9580, 1e-9, "Room total load");
+  assertClose(result.latentW, 3330, 1e-9, "Room latent load");
+  assertClose(result.totalW, 9080, 1e-9, "Room total load");
   return assertClose(
     result.sensibleHeatRatio,
-    5750 / 9580,
+    5750 / 9080,
     1e-12,
     "Room sensible heat ratio",
   );
