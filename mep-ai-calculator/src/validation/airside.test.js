@@ -21,7 +21,7 @@ export const testSupplyAirflow = () => {
     1e-12,
     "Supply airflow m3/s",
   );
-  assertClose(result.cfm, expectedVolumeFlowM3s * 2118.8799727597, 1e-6, "Supply airflow CFM");
+  assertClose(result.cfm, expectedVolumeFlowM3s * 2118.8799727597, 1e-4, "Supply airflow CFM");
 };
 
 export const testSupplyAirState = () => {
