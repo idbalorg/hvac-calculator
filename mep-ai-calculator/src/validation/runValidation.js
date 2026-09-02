@@ -50,6 +50,21 @@ import {
   testDxCapacityCheck,
 } from "./dxSizing.test.js";
 import { runDuctSizingTests } from "./ductSizing.test.js";
+import { runDuctNetworkTests } from "./ductNetwork.test.js";
+
+const expandGroupedTests = (groupId, groupName, runGroup) =>
+  runGroup().map((result) => ({
+    id: result.id,
+    name: result.name,
+    run: () => {
+      if (!result.passed) {
+        throw new Error(result.error || `${result.id} failed`);
+      }
+      return result;
+    },
+    groupId,
+    groupName,
+  }));
 
 export const runValidation = () => {
   const tests = [
@@ -178,28 +193,37 @@ export const runValidation = () => {
       run: testDxEquipmentSelection,
     },
     { id: "UNIT-DX-003", name: "DX Capacity Check", run: testDxCapacityCheck },
-    {
-      id: "UNIT-DUCT",
-      name: "Duct Sizing and Pressure Loss",
-      run: () => {
-        const results = runDuctSizingTests();
-        const failed = results.find((result) => !result.passed);
-        if (failed) throw new Error(`${failed.id}: ${failed.error}`);
-        return results;
-      },
-    },
+    ...expandGroupedTests(
+      "DUCT",
+      "Duct Sizing and Pressure Loss",
+      runDuctSizingTests,
+    ),
+    ...expandGroupedTests(
+      "NET",
+      "Duct Network and Critical Path",
+      runDuctNetworkTests,
+    ),
   ];
 
-  const results = tests.map(({ id, name, run }) => {
+  const results = tests.map(({ id, name, run, groupId, groupName }) => {
     try {
       const result = run();
-      return { id, name, status: "PASS", result };
+      return {
+        id,
+        name,
+        status: "PASS",
+        result,
+        groupId,
+        groupName,
+      };
     } catch (error) {
       return {
         id,
         name,
         status: "FAIL",
         error: error instanceof Error ? error.message : String(error),
+        groupId,
+        groupName,
       };
     }
   });
