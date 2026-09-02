@@ -49,6 +49,7 @@ import {
   testDxEquipmentSelection,
   testDxCapacityCheck,
 } from "./dxSizing.test";
+import { runDuctSizingTests } from "./ductSizing.test.js";
 
 export const runValidation = () => {
   const tests = [
@@ -85,6 +86,16 @@ export const runValidation = () => {
     { id: "UNIT-DX-001", name: "DX Capacity Sizing", run: testDxSizing },
     { id: "UNIT-DX-002", name: "DX Equipment Selection", run: testDxEquipmentSelection },
     { id: "UNIT-DX-003", name: "DX Capacity Check", run: testDxCapacityCheck },
+    {
+      id: "UNIT-DUCT",
+      name: "Duct Sizing and Pressure Loss",
+      run: () => {
+        const results = runDuctSizingTests();
+        const failed = results.find((result) => !result.passed);
+        if (failed) throw new Error(`${failed.id}: ${failed.error}`);
+        return results;
+      },
+    },
   ];
 
   const results = tests.map(({ id, name, run }) => {
