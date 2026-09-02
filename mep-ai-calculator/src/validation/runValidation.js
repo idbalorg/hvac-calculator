@@ -44,6 +44,11 @@ import {
   testMixedAir,
   testCoilLoad,
 } from "./airside.test";
+import {
+  testDxSizing,
+  testDxEquipmentSelection,
+  testDxCapacityCheck,
+} from "./dxSizing.test";
 
 export const runValidation = () => {
   const tests = [
@@ -77,6 +82,9 @@ export const runValidation = () => {
     { id: "UNIT-AIR-002", name: "Supply Air State", run: testSupplyAirState },
     { id: "UNIT-AIR-003", name: "Mixed Air State", run: testMixedAir },
     { id: "UNIT-AIR-004", name: "Cooling Coil Load", run: testCoilLoad },
+    { id: "UNIT-DX-001", name: "DX Capacity Sizing", run: testDxSizing },
+    { id: "UNIT-DX-002", name: "DX Equipment Selection", run: testDxEquipmentSelection },
+    { id: "UNIT-DX-003", name: "DX Capacity Check", run: testDxCapacityCheck },
   ];
 
   const results = tests.map(({ id, name, run }) => {
