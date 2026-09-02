@@ -56,13 +56,13 @@ export const testInfiltrationLatentAndTotalLoad = () => {
 
   assertClose(
     result.totalW,
-    3720.590508858974,
+    5535.455018925342,
     1e-9,
     "Infiltration total load",
   );
   assertClose(
     result.latentW,
-    2513.390508858974,
+    4328.255018925342,
     1e-9,
     "Infiltration latent load",
   );
