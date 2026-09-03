@@ -6,7 +6,7 @@ import { testPeopleLoad, testPeopleLoadWithDiversity } from "./peopleLoad.test.j
 import { testLightingPowerDensity, testLightingFixtureSchedule, testLightingUseFactor } from "./lightingLoad.test.js";
 import { testEquipmentLoad, testEquipmentLatentLoad, testEquipmentUseFactor } from "./equipmentLoad.test.js";
 import { testOutdoorAirflowPeopleAndArea, testOutdoorAirflowWithEffectiveness, testVentilationSensibleLoad, testVentilationLatentAndTotalLoad } from "./ventilationLoad.test.js";
-import { testInfiltrationAirflowFromACH, testInfiltrationZeroACH, testInfiltrationSensibleLoad, testInfiltrationLatentAndTotalLoad } from "./infiltrationLoad.test.js";
+import { testInfiltrationAirflowFromACH, testInfiltrationZeroACH, testInfiltrationSensibl​eLoad, testInfiltrationLatentAndTotalLoad } from "./infiltrationLoad.test.js";
 import { testRoomLoadAssembly, testRoomLoadMissingComponents, testRoomLoadDesignMargin, testRoomLoadZero } from "./roomLoad.test.js";
 import { testSupplyAirflow, testSupplyAirState, testMixedAir, testCoilLoad } from "./airside.test.js";
 import { testDxSizing, testDxEquipmentSelection, testDxCapacityCheck } from "./dxSizing.test.js";
@@ -16,6 +16,7 @@ import { runAirTerminalTests } from "./airTerminals.test.js";
 import { runDuctDistributionTests } from "./ductDistribution.test.js";
 import { runEspTests } from "./esp.test.js";
 import { runAirBalancingTests } from "./airBalancing.test.js";
+import { runSystemIntegrationTests } from "./systemIntegration.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
   id: result.id,
@@ -66,6 +67,7 @@ export const runValidation = () => {
     ...expandGroupedTests("DIST", "Automatic Duct Distribution Sizing", runDuctDistributionTests),
     ...expandGroupedTests("ESP", "Fan External Static Pressure", runEspTests),
     ...expandGroupedTests("BAL", "Air Balancing", runAirBalancingTests),
+    ...expandGroupedTests("SYS", "HVAC System Integration", runSystemIntegrationTests),
   ];
 
   const results = tests.map(({ id, name, run, groupId, groupName }) => {
