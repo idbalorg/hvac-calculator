@@ -13,6 +13,7 @@ import { testDxSizing, testDxEquipmentSelection, testDxCapacityCheck } from "./d
 import { runDuctSizingTests } from "./ductSizing.test.js";
 import { runDuctNetworkTests } from "./ductNetwork.test.js";
 import { runAirTerminalTests } from "./airTerminals.test.js";
+import { runDuctDistributionTests } from "./ductDistribution.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
   id: result.id,
@@ -60,6 +61,7 @@ export const runValidation = () => {
     ...expandGroupedTests("DUCT", "Duct Sizing and Pressure Loss", runDuctSizingTests),
     ...expandGroupedTests("NET", "Duct Network and Critical Path", runDuctNetworkTests),
     ...expandGroupedTests("TERM", "Air Terminal Selection", runAirTerminalTests),
+    ...expandGroupedTests("DIST", "Automatic Duct Distribution Sizing", runDuctDistributionTests),
   ];
 
   const results = tests.map(({ id, name, run, groupId, groupName }) => {
