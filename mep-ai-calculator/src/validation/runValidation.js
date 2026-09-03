@@ -6,7 +6,7 @@ import { testPeopleLoad, testPeopleLoadWithDiversity } from "./peopleLoad.test.j
 import { testLightingPowerDensity, testLightingFixtureSchedule, testLightingUseFactor } from "./lightingLoad.test.js";
 import { testEquipmentLoad, testEquipmentLatentLoad, testEquipmentUseFactor } from "./equipmentLoad.test.js";
 import { testOutdoorAirflowPeopleAndArea, testOutdoorAirflowWithEffectiveness, testVentilationSensibleLoad, testVentilationLatentAndTotalLoad } from "./ventilationLoad.test.js";
-import { testInfiltrationAirflowFromACH, testInfiltrationZeroACH, testInfiltrationSensibl​eLoad, testInfiltrationLatentAndTotalLoad } from "./infiltrationLoad.test.js";
+import { testInfiltrationAirflowFromACH, testInfiltrationZeroACH, testInfiltrationSensibleLoad, testInfiltrationLatentAndTotalLoad } from "./infiltrationLoad.test.js";
 import { testRoomLoadAssembly, testRoomLoadMissingComponents, testRoomLoadDesignMargin, testRoomLoadZero } from "./roomLoad.test.js";
 import { testSupplyAirflow, testSupplyAirState, testMixedAir, testCoilLoad } from "./airside.test.js";
 import { testDxSizing, testDxEquipmentSelection, testDxCapacityCheck } from "./dxSizing.test.js";
