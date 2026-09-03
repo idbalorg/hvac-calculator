@@ -15,6 +15,7 @@ import { runDuctNetworkTests } from "./ductNetwork.test.js";
 import { runAirTerminalTests } from "./airTerminals.test.js";
 import { runDuctDistributionTests } from "./ductDistribution.test.js";
 import { runEspTests } from "./esp.test.js";
+import { runAirBalancingTests } from "./airBalancing.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
   id: result.id,
@@ -64,6 +65,7 @@ export const runValidation = () => {
     ...expandGroupedTests("TERM", "Air Terminal Selection", runAirTerminalTests),
     ...expandGroupedTests("DIST", "Automatic Duct Distribution Sizing", runDuctDistributionTests),
     ...expandGroupedTests("ESP", "Fan External Static Pressure", runEspTests),
+    ...expandGroupedTests("BAL", "Air Balancing", runAirBalancingTests),
   ];
 
   const results = tests.map(({ id, name, run, groupId, groupName }) => {
