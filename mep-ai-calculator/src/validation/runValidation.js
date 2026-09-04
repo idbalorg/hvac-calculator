@@ -18,6 +18,7 @@ import { runEspTests } from "./esp.test.js";
 import { runAirBalancingTests } from "./airBalancing.test.js";
 import { runSystemIntegrationTests } from "./systemIntegration.test.js";
 import { runDesignReportTests } from "./designReport.test.js";
+import { runEquipmentSelectionTests } from "./equipmentSelection.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
   id: result.id,
@@ -70,6 +71,7 @@ export const runValidation = () => {
     ...expandGroupedTests("BAL", "Air Balancing", runAirBalancingTests),
     ...expandGroupedTests("SYS", "HVAC System Integration", runSystemIntegrationTests),
     ...expandGroupedTests("REPORT", "Engineering Schedules and Design Report", runDesignReportTests),
+    ...expandGroupedTests("EQUIP", "Equipment and System Selection Intelligence", runEquipmentSelectionTests),
   ];
 
   const results = tests.map(({ id, name, run, groupId, groupName }) => {
