@@ -93,7 +93,7 @@ export const runDesignWorkflowTests = () => {
       name: "Workflow propagates report FAIL status",
       run: () => {
         const input = makeInputs();
-        input.equipmentSelections = [{ ...equipment, capacityKw: 4.0 }];
+        input.equipmentSelections = [{ ...equipment[0], capacityKw: 4.0 }];
         const result = runDesignWorkflow(input);
         if (result.status !== "FAIL") throw new Error("Expected workflow FAIL");
       },
