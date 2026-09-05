@@ -67,15 +67,20 @@ export const integrateAirBalancingAndSystem = ({
     capacityMargin,
   });
 
-  const selection = validateSystemSelection({
-    requiredCapacityKw: requirements.designCapacityKw,
+  const selection = {
+    ...validateSystemSelection({
+      requiredCapacityKw: requirements.designCapacityKw,
+      selectedCapacityKw,
+      requiredAirflowCfm: requirements.supplyAirflowCfm,
+      selectedAirflowCfm,
+      requiredFanEspPa: requirements.requiredFanEspPa,
+      selectedFanEspPa,
+      maxOversizeFraction,
+    }),
     selectedCapacityKw,
-    requiredAirflowCfm: requirements.supplyAirflowCfm,
     selectedAirflowCfm,
-    requiredFanEspPa: requirements.requiredFanEspPa,
     selectedFanEspPa,
-    maxOversizeFraction,
-  });
+  };
 
   const systemSummary = buildSystemSummary({
     systemId: "SYSTEM-01",
