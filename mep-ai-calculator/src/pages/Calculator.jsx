@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import "../App.css";
 import { buildProjectRooms, calculateProjectRoomSummary, createRoom } from "../engineering/project/projectRooms.js";
+import { calculateProjectCoolingLoads } from "../engineering/cooling-load/roomLoadEngine.js";
 import { recommendHVACSystems } from "../engineering/system/systemDecision.js";
 
 const blankRoom = (id = "ROOM-1") => ({ id, name: "", length: "", width: "", height: "", people: "", equipmentLoadKw: "", windowAreaM2: "" });
@@ -9,21 +10,18 @@ export default function CoolingLoadCalculator() {
   const [rooms, setRooms] = useState([blankRoom()]);
   const [criteria, setCriteria] = useState({ ventilation: false, ceiling: false, outdoor: false, plant: false });
   const [zoning, setZoning] = useState("medium");
+  const [designMarginPercent, setDesignMarginPercent] = useState("10");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
   const summary = useMemo(() => {
     const validRooms = rooms.filter((room) => room.name && Number(room.length) > 0 && Number(room.width) > 0 && Number(room.height) > 0);
     if (!validRooms.length) return null;
-    try {
-      return calculateProjectRoomSummary(validRooms.map(toEngineeringRoom));
-    } catch { return null; }
+    try { return calculateProjectRoomSummary(validRooms.map(toEngineeringRoom)); } catch { return null; }
   }, [rooms]);
 
   const updateRoom = (index, key, value) => setRooms((current) => current.map((room, i) => i === index ? { ...room, [key]: value } : room));
-
   const addRoom = () => setRooms((current) => [...current, blankRoom(`ROOM-${current.length + 1}`)]);
-
   const removeRoom = (index) => setRooms((current) => current.length === 1 ? current : current.filter((_, i) => i !== index));
 
   const calculate = () => {
@@ -32,9 +30,16 @@ export default function CoolingLoadCalculator() {
       const engineeringRooms = rooms.map(toEngineeringRoom);
       const builtRooms = buildProjectRooms(engineeringRooms);
       const projectSummary = calculateProjectRoomSummary(engineeringRooms);
-      const totalCoolingLoadKw = builtRooms.reduce((sum, room) => sum + room.geometry.floorAreaM2 * 0.14 + room.people * 0.12 + room.equipmentLoadKw + room.windowAreaM2 * 0.18, 0);
+      const margin = Number(designMarginPercent) || 0;
+
+      // Engineering inputs are intentionally explicit. The current UI fields
+      // cover geometry, occupants, equipment and window area. Detailed envelope,
+      // solar, lighting, ventilation and infiltration inputs will be added as
+      // their dedicated engineering forms are introduced.
+      const engineeringByRoom = Object.fromEntries(engineeringRooms.map((room) => [room.id, buildDefaultEngineeringInputs(room)]));
+      const loads = calculateProjectCoolingLoads({ rooms: engineeringRooms, engineeringByRoom, designMarginPercent: margin });
       const decision = recommendHVACSystems({
-        totalCoolingLoadKw: Math.max(totalCoolingLoadKw, 0.001),
+        totalCoolingLoadKw: Math.max(loads.totalDesignLoadKw, 0.001),
         floorAreaM2: Math.max(projectSummary.floorAreaM2, 0.001),
         zoneCount: builtRooms.length,
         ventilationRequired: criteria.ventilation,
@@ -43,7 +48,7 @@ export default function CoolingLoadCalculator() {
         outdoorUnitSpaceLimited: criteria.outdoor,
         centralPlantAvailable: criteria.plant,
       });
-      setResult({ rooms: builtRooms, summary: projectSummary, totalCoolingLoadKw, decision });
+      setResult({ rooms: builtRooms, summary: projectSummary, loads, decision });
     } catch (e) {
       setResult(null);
       setError(e.message || "Please check the project inputs.");
@@ -53,12 +58,12 @@ export default function CoolingLoadCalculator() {
   const saveProject = () => {
     if (!result) return;
     const projects = JSON.parse(localStorage.getItem("hvac-projects") || "[]");
-    localStorage.setItem("hvac-projects", JSON.stringify([...projects, { rooms, criteria, zoning, result, date: new Date().toISOString() }]));
+    localStorage.setItem("hvac-projects", JSON.stringify([...projects, { rooms, criteria, zoning, designMarginPercent, result, date: new Date().toISOString() }]));
   };
 
   return <div className="container">
     <div className="page-header">
-      <div><p className="eyebrow">ENGINEERING WORKFLOW</p><h1 className="title">HVAC Design Calculator</h1><p className="subtitle">Project-level room input, cooling-load screening and HVAC system selection.</p></div>
+      <div><p className="eyebrow">ENGINEERING WORKFLOW</p><h1 className="title">HVAC Design Calculator</h1><p className="subtitle">Project-level room input, component cooling-load calculation and HVAC system selection.</p></div>
       <span className="version-badge">Engineering Core v2</span>
     </div>
 
@@ -81,8 +86,11 @@ export default function CoolingLoadCalculator() {
         </div>)}
         <button type="button" className="secondary-button" onClick={addRoom}>+ Add Room</button>
 
-        <div className="section-heading compact"><h3>System Selection Criteria</h3><span>02</span></div>
-        <div className="input-grid"><div><label>Zoning priority</label><select value={zoning} onChange={(e) => setZoning(e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div></div>
+        <div className="section-heading compact"><h3>Load & System Criteria</h3><span>02</span></div>
+        <div className="input-grid">
+          <Input label="Design margin" value={designMarginPercent} onChange={setDesignMarginPercent} placeholder="%" type="number" min="0" />
+          <div><label>Zoning priority</label><select value={zoning} onChange={(e) => setZoning(e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+        </div>
         <div className="checks">
           <Check label="Dedicated ventilation required" checked={criteria.ventilation} onChange={(v) => setCriteria((c) => ({ ...c, ventilation: v }))} />
           <Check label="Ceiling/service space limited" checked={criteria.ceiling} onChange={(v) => setCriteria((c) => ({ ...c, ceiling: v }))} />
@@ -95,15 +103,16 @@ export default function CoolingLoadCalculator() {
       </div>
 
       {result && <div className="results-stack">
-        <div className="card"><div className="section-heading"><h3>Project Summary</h3><span>03</span></div>
+        <div className="card"><div className="section-heading"><h3>Project Cooling Load</h3><span>03</span></div>
           <div className="stat"><span>Conditioned Area</span><b>{result.summary.floorAreaM2.toFixed(2)} m²</b></div>
           <div className="stat"><span>Room Volume</span><b>{result.summary.volumeM3.toFixed(2)} m³</b></div>
           <div className="stat"><span>Total Occupants</span><b>{result.summary.occupants}</b></div>
-          <div className="stat"><span>Screening Cooling Load</span><b>{result.totalCoolingLoadKw.toFixed(2)} kW</b></div>
+          <div className="stat"><span>Raw Cooling Load</span><b>{result.loads.totalRawLoadKw.toFixed(2)} kW</b></div>
+          <div className="stat"><span>Design Cooling Load</span><b>{result.loads.totalDesignLoadKw.toFixed(2)} kW</b></div>
         </div>
 
-        <div className="card"><div className="section-heading"><h3>Room Schedule</h3><span>04</span></div>
-          {result.rooms.map((room) => <div className="stat" key={room.id}><span>{room.name} · {room.geometry.floorAreaM2.toFixed(1)} m²</span><b>{room.people} people</b></div>)}
+        <div className="card"><div className="section-heading"><h3>Room Load Schedule</h3><span>04</span></div>
+          {result.loads.roomResults.map((room) => <div className="stat" key={room.roomId}><span>{room.roomName} · {room.geometry.floorAreaM2.toFixed(1)} m²</span><b>{(room.designLoad.totalW / 1000).toFixed(2)} kW</b></div>)}
         </div>
 
         <div className="card decision-card"><div className="section-heading"><h3>System Decision</h3><span>05</span></div>
@@ -117,16 +126,22 @@ export default function CoolingLoadCalculator() {
 }
 
 function toEngineeringRoom(room) {
-  return createRoom({
-    id: room.id,
-    name: room.name,
-    length: Number(room.length),
-    width: Number(room.width),
-    height: Number(room.height),
-    people: Number(room.people) || 0,
-    equipmentLoadKw: Number(room.equipmentLoadKw) || 0,
-    windowAreaM2: Number(room.windowAreaM2) || 0,
-  });
+  return createRoom({ id: room.id, name: room.name, length: Number(room.length), width: Number(room.width), height: Number(room.height), people: Number(room.people) || 0, equipmentLoadKw: Number(room.equipmentLoadKw) || 0, windowAreaM2: Number(room.windowAreaM2) || 0 });
+}
+
+function buildDefaultEngineeringInputs(room) {
+  // Explicit placeholder engineering inputs keep the engine traceable while
+  // detailed envelope/solar/ventilation forms are added in the next stage.
+  return {
+    walls: { area: room.length * room.height * 2, uValue: 0, cltd: 0 },
+    roof: { area: room.length * room.width, uValue: 0, cltd: 0 },
+    windows: { area: room.windowAreaM2, uValue: 0, cltd: 0, shgc: 0, solarIrradiance: 0 },
+    people: { sensibleHeatPerPerson: 0, latentHeatPerPerson: 0 },
+    lighting: { powerDensity: 0 },
+    equipment: [],
+    ventilation: { outdoorAirPerPersonLps: 0, outdoorAirPerAreaLpsM2: 0, indoorDryBulbC: 24, indoorRelativeHumidityPercent: 50, outdoorDryBulbC: 24, outdoorRelativeHumidityPercent: 50 },
+    infiltration: { infiltrationAirLps: 0, indoorDryBulbC: 24, indoorRelativeHumidityPercent: 50, outdoorDryBulbC: 24, outdoorRelativeHumidityPercent: 50 },
+  };
 }
 
 function Input({ label, value, onChange, placeholder, type = "text", min }) { return <div><label>{label}</label><input type={type} min={min} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} /></div>; }
