@@ -1,33 +1,8 @@
-import {
-  DEFAULT_ENGINEERING_INPUTS,
-  ENGINEERING_INPUT_VERSION,
-  buildEngineeringInputsForRoom,
-  createEngineeringInputs,
-  createEquipmentItem,
-  normalizeEngineeringInputs,
-  validateEngineeringInputs,
-} from "../engineering/project/engineeringInputs.js";
+import { DEFAULT_ENGINEERING_INPUTS, ENGINEERING_INPUT_VERSION, buildEngineeringInputsForRoom, createEngineeringInputs, createEquipmentItem, normalizeEngineeringInputs, validateEngineeringInputs } from "../engineering/project/engineeringInputs.js";
 import { buildProjectDesignConditions } from "../engineering/project/designConditions.js";
 
-const makeRoom = (overrides = {}) => ({
-  id: "ROOM-1",
-  name: "Office",
-  length: 6,
-  width: 5,
-  height: 3,
-  people: 6,
-  equipmentLoadKw: 3,
-  windowAreaM2: 6,
-  ...overrides,
-});
-
-const conditions = buildProjectDesignConditions({
-  outdoorConditionId: "LAGOS_IKEJA_ASHRAE_2021",
-  coolingPercentile: "percentile04",
-  indoorDryBulbC: 24,
-  indoorRelativeHumidityPercent: 50,
-  outdoorRelativeHumidityPercent: 75,
-});
+const makeRoom = (overrides = {}) => ({ id: "ROOM-1", name: "Office", length: 6, width: 5, height: 3, people: 6, equipmentLoadKw: 3, windowAreaM2: 6, ...overrides });
+const conditions = buildProjectDesignConditions({ outdoorConditionId: "LAGOS_IKEJA_ASHRAE_2021", coolingPercentile: "percentile04", indoorDryBulbC: 24, indoorRelativeHumidityPercent: 50, outdoorRelativeHumidityPercent: 75 });
 
 export const runEngineeringInputTests = () => {
   const tests = [
@@ -42,15 +17,11 @@ export const runEngineeringInputTests = () => {
     { id: "INPUT-009", name: "Map room equipment allowance into schedule", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom({ equipmentLoadKw: 2.5 }), designConditions: conditions, inputs: createEngineeringInputs() }); if (result.equipment.items[0].sensibleWatts !== 2500) throw new Error("Room equipment allowance not mapped"); return true; } },
     { id: "INPUT-010", name: "Preserve explicit equipment schedule", run: () => { const input = createEngineeringInputs({ equipment: { items: [createEquipmentItem({ name: "Server", sensibleWatts: 1000 })] } }); const result = buildEngineeringInputsForRoom({ room: makeRoom({ equipmentLoadKw: 5 }), designConditions: conditions, inputs: input }); if (result.equipment.items.length !== 1 || result.equipment.items[0].name !== "Server") throw new Error("Explicit equipment schedule was overwritten"); return true; } },
     { id: "INPUT-011", name: "Keep ventilation disabled unless selected", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom(), designConditions: conditions, inputs: createEngineeringInputs() }); if (result.ventilation !== null) throw new Error("Ventilation should be disabled by default"); return true; } },
-    { id: "INPUT-012", name: "Map ACH infiltration to airflow", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom(), designConditions: conditions, inputs: createEngineeringInputs({ infiltration: { enabled: true, method: "ACH", airChangesPerHour: 0.5 } }) }); if (Math.abs(result.infiltration.infiltrationAirLps - 2.0833333333) > 0.001) throw new Error("ACH airflow mapping failed"); return true; } },
+    { id: "INPUT-012", name: "Map ACH infiltration to airflow", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom(), designConditions: conditions, inputs: createEngineeringInputs({ infiltration: { enabled: true, method: "ACH", airChangesPerHour: 0.5 } }) }); if (Math.abs(result.infiltration.infiltrationAirLps - 12.5) > 0.001) throw new Error("ACH airflow mapping failed"); return true; } },
     { id: "INPUT-013", name: "Map direct infiltration airflow", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom(), designConditions: conditions, inputs: createEngineeringInputs({ infiltration: { enabled: true, method: "AIRFLOW", airflowLps: 15 } }) }); if (result.infiltration.infiltrationAirLps !== 15) throw new Error("Direct infiltration airflow mapping failed"); return true; } },
     { id: "INPUT-014", name: "Map ventilation people and area rates", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom(), designConditions: conditions, inputs: createEngineeringInputs({ ventilation: { enabled: true, outdoorAirPerPersonLps: 5, outdoorAirPerAreaLpsM2: 0.6, effectiveness: 0.8 } }) }); if (result.ventilation.outdoorAirPerPersonLps !== 5 || result.ventilation.outdoorAirPerAreaLpsM2 !== 0.6) throw new Error("Ventilation rates not mapped"); return true; } },
     { id: "INPUT-015", name: "Carry design-condition indoor and outdoor states", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom(), designConditions: conditions, inputs: createEngineeringInputs({ ventilation: { enabled: true, outdoorAirPerPersonLps: 5 } }) }); if (result.ventilation.indoorDryBulbC !== 24 || result.ventilation.outdoorDryBulbC !== 34.8 || result.ventilation.outdoorRelativeHumidityPercent !== 75) throw new Error("Design condition state mapping failed"); return true; } },
     { id: "INPUT-016", name: "Return metadata for auditability", run: () => { const result = buildEngineeringInputsForRoom({ room: makeRoom(), designConditions: conditions, inputs: createEngineeringInputs() }); if (result.metadata.version !== "12.0.0" || !result.metadata.source) throw new Error("Engineering input metadata missing"); return true; } },
   ];
-
-  return tests.map((test) => {
-    try { test.run(); return { id: test.id, name: test.name, passed: true }; }
-    catch (error) { return { id: test.id, name: test.name, passed: false, error: error.message }; }
-  });
+  return tests.map((test) => { try { test.run(); return { id: test.id, name: test.name, passed: true }; } catch (error) { return { id: test.id, name: test.name, passed: false, error: error.message }; } });
 };
