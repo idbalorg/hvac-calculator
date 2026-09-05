@@ -52,7 +52,7 @@ export const runValidation = () => {
     { id: "UNIT-VENT-004", name: "Ventilation Latent and Total Load", run: testVentilationLatentAndTotalLoad },
     { id: "UNIT-INF-001", name: "Infiltration Airflow from ACH", run: testInfiltrationAirflowFromACH },
     { id: "UNIT-INF-002", name: "Zero ACH Infiltration", run: testInfiltrationZeroACH },
-    { id: "UNIT-INF-003", name: "Infiltration Sensible Load", run: testInfiltrationSensiblesLoad },
+    { id: "UNIT-INF-003", name: "Infiltration Sensible Load", run: testInfiltrationSensibleLoad },
     { id: "UNIT-INF-004", name: "Infiltration Latent and Total Load", run: testInfiltrationLatentAndTotalLoad },
     { id: "UNIT-ROOM-001", name: "Room Load Assembly", run: testRoomLoadAssembly },
     { id: "UNIT-ROOM-002", name: "Room Load Missing Components", run: testRoomLoadMissingComponents },
@@ -90,7 +90,7 @@ export const runValidation = () => {
 const validationResult = runValidation();
 console.log("HVAC Engineering Validation");
 console.log("===========================");
-console.log(`Status: ${validationResult.passed ? "PASS" : "FAIL"}`);
+console.log("Status: " + (validationResult.passed ? "PASS" : "FAIL"));
 console.log(`Tests: ${validationResult.passedCount}/${validationResult.total} passed`);
 for (const result of validationResult.results) { console.log(`${result.id} | ${result.name} | ${result.status}`); if (result.error) console.error(`  ${result.error}`); }
 if (!validationResult.passed) process.exitCode = 1;
