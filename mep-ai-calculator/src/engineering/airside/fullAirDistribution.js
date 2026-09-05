@@ -1,10 +1,9 @@
 /**
  * Stage 15: full air-distribution integration.
  *
- * Connects a selected equipment airflow/ESP requirement to a user-defined
- * terminal/branch/main duct network and calculates the critical-path ESP.
- * Design criteria, fitting K-values and component pressure drops remain
- * explicit inputs. No manufacturer or code limits are embedded.
+ * Connects selected equipment airflow/ESP to a user-defined terminal, branch
+ * and main duct network. Design criteria, fitting K-values and component
+ * pressure drops remain explicit inputs. No manufacturer or code limits are embedded.
  */
 import { buildDuctDistribution } from "./ductDistribution.js";
 import { calculateNetwork, criticalPathPressureLoss } from "./ductNetwork.js";
@@ -17,7 +16,6 @@ const CFM_TO_M3S = 1 / M3S_TO_CFM;
 const assertPositive = (value, name) => {
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be greater than zero`);
 };
-
 const assertNonNegative = (value, name) => {
   if (!Number.isFinite(value) || value < 0) throw new Error(`${name} cannot be negative`);
 };
@@ -26,11 +24,7 @@ export const calculateDistributionAirflow = ({ requiredAirflowM3s, terminalCount
   assertPositive(requiredAirflowM3s, "Required airflow");
   if (!Number.isInteger(terminalCount) || terminalCount <= 0) throw new Error("Terminal count must be a positive integer.");
   const requiredAirflowCfm = requiredAirflowM3s * M3S_TO_CFM;
-  return {
-    requiredAirflowM3s,
-    requiredAirflowCfm,
-    airflowPerTerminalCfm: requiredAirflowCfm / terminalCount,
-  };
+  return { requiredAirflowM3s, requiredAirflowCfm, airflowPerTerminalCfm: requiredAirflowCfm / terminalCount };
 };
 
 export const validateEquipmentAirflow = ({ selectedEquipmentAirflowCfm, requiredAirflowCfm, toleranceFraction = 0 }) => {
@@ -38,13 +32,12 @@ export const validateEquipmentAirflow = ({ selectedEquipmentAirflowCfm, required
   assertPositive(requiredAirflowCfm, "Required airflow");
   assertNonNegative(toleranceFraction, "Airflow tolerance");
   const deviationFraction = (selectedEquipmentAirflowCfm - requiredAirflowCfm) / requiredAirflowCfm;
-  const absoluteDeviationFraction = Math.abs(deviationFraction);
   return {
     selectedEquipmentAirflowCfm,
     requiredAirflowCfm,
     deviationFraction,
-    absoluteDeviationFraction,
-    acceptable: absoluteDeviationFraction <= toleranceFraction,
+    absoluteDeviationFraction: Math.abs(deviationFraction),
+    acceptable: Math.abs(deviationFraction) <= toleranceFraction,
   };
 };
 
@@ -65,25 +58,21 @@ export const integrateAirDistribution = ({
 }) => {
   assertPositive(selectedEquipmentAirflowCfm, "Selected equipment airflow");
   if (availableFanEspPa !== null) assertNonNegative(availableFanEspPa, "Available fan ESP");
-  const airflow = calculateDistributionAirflow({ requiredAirflowM3s, terminalCount: branches.length });
-  const airflowCheck = validateEquipmentAirflow({
-    selectedEquipmentAirflowCfm,
-    requiredAirflowCfm: airflow.requiredAirflowCfm,
-    toleranceFraction: airflowToleranceFraction,
-  });
-
   if (!Array.isArray(branches) || branches.length === 0) throw new Error("At least one duct branch is required.");
+
+  const airflow = calculateDistributionAirflow({ requiredAirflowM3s, terminalCount: branches.length });
+  const airflowCheck = validateEquipmentAirflow({ selectedEquipmentAirflowCfm, requiredAirflowCfm: airflow.requiredAirflowCfm, toleranceFraction: airflowToleranceFraction });
   const distribution = buildDuctDistribution({ branches, mainSections });
+
+  // Preserve explicit network-loss inputs supplied by the engineer. The
+  // distribution sizing result supplies the conserved airflow and dimensions.
   const network = calculateNetwork({
-    branches: distribution.branches.map((branch) => ({
-      id: branch.id,
-      terminalAirflowM3s: branch.airflowM3s,
+    branches: branches.map((branch, index) => ({
+      id: distribution.branches[index].id,
+      terminalAirflowM3s: distribution.branches[index].airflowM3s,
       segments: branch.segments ?? [],
     })),
-    mainSegments: mainSections.map((section) => ({
-      ...section,
-      volumeFlowM3s: section.volumeFlowM3s ?? undefined,
-    })),
+    mainSegments: mainSections,
   });
   const criticalDuctLossPa = criticalPathPressureLoss(network);
   const esp = calculateFanESP({
@@ -98,12 +87,7 @@ export const integrateAirDistribution = ({
 
   const espCheck = availableFanEspPa === null
     ? { availableFanEspPa: null, requiredFanESP_Pa: esp.requiredFanESP_Pa, acceptable: null, marginPa: null }
-    : {
-        availableFanEspPa,
-        requiredFanESP_Pa: esp.requiredFanESP_Pa,
-        acceptable: availableFanEspPa >= esp.requiredFanESP_Pa,
-        marginPa: availableFanEspPa - esp.requiredFanESP_Pa,
-      };
+    : { availableFanEspPa, requiredFanESP_Pa: esp.requiredFanESP_Pa, acceptable: availableFanEspPa >= esp.requiredFanESP_Pa, marginPa: availableFanEspPa - esp.requiredFanESP_Pa };
 
   return {
     airflow,
