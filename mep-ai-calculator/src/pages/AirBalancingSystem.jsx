@@ -1,138 +1,72 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import "../App.css";
 import { integrateAirBalancingAndSystem } from "../engineering/airside/airBalanceSystemIntegration.js";
 
-const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const DEFAULTS = { tolerance: 10, capacityMargin: 10, espSafety: 10, maxOversize: 20, critical: 180, terminal: 30, coil: 80, filter: 40, damper: 20, other: 10, selectedCapacity: 9, selectedAirflow: 800, selectedEsp: 440 };
+const n = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
 export default function AirBalancingSystem() {
-  const [saved, setSaved] = useState(null);
-  const [roomId, setRoomId] = useState("");
-  const [tolerancePercent, setTolerancePercent] = useState(10);
-  const [measured, setMeasured] = useState({});
-  const [selectedCapacityKw, setSelectedCapacityKw] = useState(9);
-  const [selectedAirflowCfm, setSelectedAirflowCfm] = useState(800);
-  const [selectedFanEspPa, setSelectedFanEspPa] = useState(440);
-  const [capacityMarginPercent, setCapacityMarginPercent] = useState(10);
-  const [espSafetyFactorPercent, setEspSafetyFactorPercent] = useState(10);
-  const [maxOversizePercent, setMaxOversizePercent] = useState(20);
-  const [pressure, setPressure] = useState({ critical: 180, terminal: 30, coil: 80, filter: 40, damper: 20, other: 10 });
-  const [status, setStatus] = useState(null);
-
-  useEffect(() => {
-    const projects = JSON.parse(localStorage.getItem("hvac-projects") || "[]");
-    const current = projects.find((project) => project.current) || projects[0] || null;
-    setSaved(current);
-    setRoomId(current?.rooms?.[0]?.id || "");
-  }, []);
-
+  const saved = useMemo(() => { try { return JSON.parse(localStorage.getItem("hvac-projects") || "[]").at(-1) || null; } catch { return null; } }, []);
   const rooms = saved?.rooms || [];
-  const room = rooms.find((item) => item.id === roomId) || rooms[0];
-  const airside = saved?.result?.airside?.roomResults?.find?.((item) => item.roomId === room?.id);
-  const distribution = saved?.result?.airDistribution;
-  const dx = saved?.result?.dxSystem;
+  const loadResults = saved?.result?.loads?.roomResults || [];
+  const [roomId, setRoomId] = useState(rooms[0]?.id || loadResults[0]?.roomId || "");
+  const [tolerance, setTolerance] = useState(String(DEFAULTS.tolerance));
+  const [measured, setMeasured] = useState({});
+  const [capacityMargin, setCapacityMargin] = useState(String(DEFAULTS.capacityMargin));
+  const [espSafety, setEspSafety] = useState(String(DEFAULTS.espSafety));
+  const [maxOversize, setMaxOversize] = useState(String(DEFAULTS.maxOversize));
+  const [selectedCapacity, setSelectedCapacity] = useState(String(DEFAULTS.selectedCapacity));
+  const [selectedAirflow, setSelectedAirflow] = useState(String(DEFAULTS.selectedAirflow));
+  const [selectedEsp, setSelectedEsp] = useState(String(DEFAULTS.selectedEsp));
+  const [pressure, setPressure] = useState(DEFAULTS);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
-  const defaultAirflow = number(airside?.supplyAirflowM3s) * 2118.88;
-  const terminal = useMemo(() => ({
-    id: `T-${room?.id || "01"}`,
-    roomId: room?.id || null,
-    designAirflowCfm: defaultAirflow || 400,
-    measuredAirflowCfm: number(measured[room?.id || "default"], defaultAirflow || 400),
-  }), [room, defaultAirflow, measured]);
+  const roomResult = loadResults.find((item) => item.roomId === roomId) || loadResults[0];
+  const activeRoomId = roomResult?.roomId || roomId;
+  const airside = saved?.result?.airside?.roomResults?.find?.((item) => item.roomId === activeRoomId);
+  const dx = saved?.result?.dxSystem?.roomId === activeRoomId ? saved.result.dxSystem : null;
+  const distribution = saved?.result?.airDistribution?.roomId === activeRoomId ? saved.result.airDistribution : null;
+  const designAirflowCfm = n(airside?.airflow?.airflowM3s) * 2118.88;
+  const defaultMeasured = designAirflowCfm || 400;
 
   const run = () => {
-    if (!room || !airside) {
-      setStatus({ error: "Run the room cooling load and Psychrometrics & Airside stages first." });
-      return;
-    }
+    setError(""); setResult(null);
+    try {
+      if (!roomResult) throw new Error("Save a calculated project first.");
+      if (!airside) throw new Error("Run Stage 13 Psychrometrics & Airside for this room first.");
+      if (!dx?.selection?.selected) throw new Error("Run Stage 14 DX Equipment selection for this room first.");
+      if (!distribution?.criticalDuctLossPa && distribution?.criticalDuctLossPa !== 0) throw new Error("Run Stage 15 Air Distribution for this room first.");
 
-    const designAirflowCfm = defaultAirflow || 400;
-    const result = integrateAirBalancingAndSystem({
-      terminals: [terminal],
-      branchPressureLossesPa: [{ id: "B1", pressureLossPa: number(distribution?.criticalDuctLossPa, number(pressure.critical)) }],
-      tolerancePercent: number(tolerancePercent, 10),
-      roomLoadsKw: [number(room.designLoadW, 0) / 1000],
-      roomAirflowsCfm: [designAirflowCfm],
-      outdoorAirflowCfm: number(airside?.outdoorAirflowM3s) * 2118.88,
-      transferAirflowCfm: 0,
-      criticalPathPressureLossPa: number(distribution?.criticalDuctLossPa, number(pressure.critical)),
-      terminalPressureDropPa: number(pressure.terminal),
-      coilPressureDropPa: number(pressure.coil),
-      filterPressureDropPa: number(pressure.filter),
-      damperPressureDropPa: number(pressure.damper),
-      otherPressureDropsPa: [number(pressure.other)],
-      espSafetyFactor: number(espSafetyFactorPercent) / 100,
-      capacityMargin: number(capacityMarginPercent) / 100,
-      selectedCapacityKw: number(selectedCapacityKw),
-      selectedAirflowCfm: number(selectedAirflowCfm),
-      selectedFanEspPa: number(selectedFanEspPa),
-      maxOversizeFraction: number(maxOversizePercent) / 100,
-    });
+      const designCfm = designAirflowCfm;
+      const measuredCfm = n(measured[activeRoomId], designCfm);
+      const selectedIndoor = dx.selection.selected.indoorUnit;
+      const integrated = integrateAirBalancingAndSystem({
+        terminals: [{ id: "T1", roomId: activeRoomId, designAirflowCfm: designCfm, measuredAirflowCfm: measuredCfm }],
+        branchPressureLossesPa: [{ id: "B1", pressureLossPa: n(distribution.criticalDuctLossPa, n(pressure.critical)) }],
+        tolerancePercent: n(tolerance, 10),
+        roomLoadsKw: [n(roomResult.designLoadW) / 1000],
+        roomAirflowsCfm: [designCfm],
+        outdoorAirflowCfm: n(airside.outdoorAirflowM3s) * 2118.88,
+        transferAirflowCfm: 0,
+        criticalPathPressureLossPa: n(distribution.criticalDuctLossPa, n(pressure.critical)),
+        terminalPressureDropPa: n(pressure.terminal), coilPressureDropPa: n(pressure.coil), filterPressureDropPa: n(pressure.filter), damperPressureDropPa: n(pressure.damper), otherPressureDropsPa: [n(pressure.other)],
+        espSafetyFactor: n(espSafety) / 100,
+        capacityMargin: n(capacityMargin) / 100,
+        selectedCapacityKw: n(selectedCapacity, n(selectedIndoor.capacityKw, 0)),
+        selectedAirflowCfm: n(selectedAirflow, n(selectedIndoor.airflowCfm, designCfm)),
+        selectedFanEspPa: n(selectedEsp, n(selectedIndoor.availableEspPa, 0)),
+        maxOversizeFraction: n(maxOversize) / 100,
+      });
 
-    const projects = JSON.parse(localStorage.getItem("hvac-projects") || "[]");
-    const index = projects.findIndex((project) => project.id === saved?.id);
-    if (index >= 0) {
-      projects[index].current = { ...(projects[index].current || {}), result: { ...(projects[index].current?.result || {}), airBalanceSystem: result } };
-      localStorage.setItem("hvac-projects", JSON.stringify(projects));
-      setSaved(projects[index]);
-    }
-    setStatus(result);
+      const payload = { roomId: activeRoomId, inputs: { tolerancePercent: n(tolerance), capacityMarginPercent: n(capacityMargin), espSafetyFactorPercent: n(espSafety), maxOversizePercent: n(maxOversize), measuredAirflowCfm: measuredCfm, ...pressure, selectedCapacityKw: n(selectedCapacity), selectedAirflowCfm: n(selectedAirflow), selectedFanEspPa: n(selectedEsp) }, ...integrated };
+      const projects = JSON.parse(localStorage.getItem("hvac-projects") || "[]");
+      if (projects.length) { const current = projects.at(-1); current.result = { ...current.result, airBalanceSystem: payload }; localStorage.setItem("hvac-projects", JSON.stringify(projects)); }
+      setResult(payload);
+    } catch (e) { setError(e.message || "Please check the Stage 16 inputs."); }
   };
 
-  if (!saved) return <main className="page"><h1>Air Balancing & System Integration</h1><p>Create a project and run the earlier design stages first.</p></main>;
-
-  return <main className="page">
-    <h1>Air Balancing & System Integration</h1>
-    <p>Stage 16 reconciles terminal measurements, branch balancing targets and system-level capacity, airflow and fan ESP.</p>
-    <p><strong>Engineering boundary:</strong> measured airflow represents field TAB data. Damper pressure-drop targets are design targets only and must be adjusted using field measurements and manufacturer characteristics.</p>
-
-    <section className="card">
-      <h2>Design Basis</h2>
-      <label>Room<select value={room?.id || ""} onChange={(event) => setRoomId(event.target.value)}>{rooms.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}</select></label>
-      <label>Balance tolerance (%)<input type="number" value={tolerancePercent} onChange={(event) => setTolerancePercent(event.target.value)} /></label>
-      <div className="grid">
-        <div><strong>Stage 13 airflow</strong><p>{defaultAirflow.toFixed(0)} CFM</p></div>
-        <div><strong>Stage 15 duct loss</strong><p>{number(distribution?.criticalDuctLossPa, number(pressure.critical)).toFixed(1)} Pa</p></div>
-        <div><strong>Stage 14 DX capacity</strong><p>{number(dx?.requiredCapacityW) / 1000 || "Not saved"} kW</p></div>
-      </div>
-    </section>
-
-    <section className="card">
-      <h2>Field Air Balance</h2>
-      <label>Measured airflow for {room?.id}<input type="number" value={measured[room?.id] ?? defaultAirflow.toFixed(0)} onChange={(event) => setMeasured({ ...measured, [room.id]: event.target.value })} /></label>
-      <p>Design airflow: {defaultAirflow.toFixed(0)} CFM</p>
-    </section>
-
-    <section className="card">
-      <h2>System Selection Check</h2>
-      <div className="grid">
-        <label>Selected capacity (kW)<input type="number" value={selectedCapacityKw} onChange={(event) => setSelectedCapacityKw(event.target.value)} /></label>
-        <label>Selected airflow (CFM)<input type="number" value={selectedAirflowCfm} onChange={(event) => setSelectedAirflowCfm(event.target.value)} /></label>
-        <label>Selected fan ESP (Pa)<input type="number" value={selectedFanEspPa} onChange={(event) => setSelectedFanEspPa(event.target.value)} /></label>
-        <label>Capacity margin (%)<input type="number" value={capacityMarginPercent} onChange={(event) => setCapacityMarginPercent(event.target.value)} /></label>
-        <label>ESP safety factor (%)<input type="number" value={espSafetyFactorPercent} onChange={(event) => setEspSafetyFactorPercent(event.target.value)} /></label>
-        <label>Maximum oversize (%)<input type="number" value={maxOversizePercent} onChange={(event) => setMaxOversizePercent(event.target.value)} /></label>
-      </div>
-    </section>
-
-    <section className="card">
-      <h2>Pressure-Drop Inputs</h2>
-      <div className="grid">{Object.entries(pressure).map(([key, value]) => <label key={key}>{key} (Pa)<input type="number" value={value} onChange={(event) => setPressure({ ...pressure, [key]: event.target.value })} /></label>)}</div>
-    </section>
-
-    <button onClick={run}>Run Stage 16</button>
-
-    {status?.error && <div className="card"><strong>{status.error}</strong></div>}
-    {status && !status.error && <section className="card">
-      <h2>Stage 16 Result</h2>
-      <div className="grid">
-        <div><strong>Status</strong><p>{status.engineeringStatus}</p></div>
-        <div><strong>Terminal balance</strong><p>{status.balanceReport.summary.balancedCount}/{status.balanceReport.summary.total} balanced</p></div>
-        <div><strong>Critical branch</strong><p>{status.branchBalancing.criticalBranchId}</p></div>
-        <div><strong>Required capacity</strong><p>{status.requirements.designCapacityKw.toFixed(2)} kW</p></div>
-        <div><strong>Required fan ESP</strong><p>{status.requirements.requiredFanEspPa.toFixed(1)} Pa</p></div>
-        <div><strong>Selection</strong><p>{status.selection.passed ? "PASS" : "FAIL"}</p></div>
-      </div>
-      {status.balanceReport.rows.map((row) => <p key={row.id}>{row.id}: {row.deviationPercent.toFixed(1)}% deviation, <strong>{row.status}</strong></p>)}
-      <p><strong>Verification required:</strong> Yes. Final TAB results, equipment performance and system selection must be verified before construction use.</p>
-    </section>}
-  </main>;
+  return <div className="container"><div className="page-header"><div><p className="eyebrow">ENGINEERING WORKFLOW · STAGE 16</p><h1 className="title">Air Balancing & System Integration</h1><p className="subtitle">Carry the Stage 15 duct network into terminal balancing and system-level verification.</p></div><span className="version-badge">Stage 16</span></div><div className="grid calculator-grid"><div className="card"><div className="section-heading"><h3>Workflow Inputs</h3><span>01</span></div>{!saved && <p className="form-note">Calculate and save a project first.</p>}{saved && <div className="input-grid"><div><label>Room</label><select value={activeRoomId} onChange={(e) => setRoomId(e.target.value)}>{rooms.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.name || "Unnamed room"}</option>)}</select></div><Input label="Balance tolerance" value={tolerance} onChange={setTolerance} placeholder="%" /><Input label="Measured terminal airflow" value={measured[activeRoomId] ?? defaultMeasured.toFixed(0)} onChange={(v) => setMeasured({ ...measured, [activeRoomId]: v })} placeholder="CFM" /><Input label="Capacity margin" value={capacityMargin} onChange={setCapacityMargin} placeholder="%" /><Input label="ESP safety factor" value={espSafety} onChange={setEspSafety} placeholder="%" /><Input label="Maximum oversize" value={maxOversize} onChange={setMaxOversize} placeholder="%" /></div>}{error && <p className="error-message">{error}</p>}<button onClick={run} disabled={!saved}>Run Stage 16</button></div><div className="results-stack"><div className="card"><div className="section-heading"><h3>Selected Equipment</h3><span>02</span></div><div className="input-grid"><Input label="Selected capacity" value={selectedCapacity} onChange={setSelectedCapacity} placeholder="kW" /><Input label="Selected airflow" value={selectedAirflow} onChange={setSelectedAirflow} placeholder="CFM" /><Input label="Selected fan ESP" value={selectedEsp} onChange={setSelectedEsp} placeholder="Pa" /></div><p className="form-note">Defaults are editable. Final equipment values must come from the actual manufacturer selection.</p></div><div className="card"><div className="section-heading"><h3>Pressure-Drop Basis</h3><span>03</span></div><div className="input-grid"><Input label="Critical duct loss" value={pressure.critical} onChange={(v) => setPressure({ ...pressure, critical: v })} placeholder="Pa" /><Input label="Terminal" value={pressure.terminal} onChange={(v) => setPressure({ ...pressure, terminal: v })} placeholder="Pa" /><Input label="Coil" value={pressure.coil} onChange={(v) => setPressure({ ...pressure, coil: v })} placeholder="Pa" /><Input label="Filter" value={pressure.filter} onChange={(v) => setPressure({ ...pressure, filter: v })} placeholder="Pa" /><Input label="Damper" value={pressure.damper} onChange={(v) => setPressure({ ...pressure, damper: v })} placeholder="Pa" /><Input label="Other" value={pressure.other} onChange={(v) => setPressure({ ...pressure, other: v })} placeholder="Pa" /></div></div></div></div>{result && <div className="card"><div className="section-heading"><h3>Integrated Result</h3><span>04</span></div><div className="stat-grid"><Stat label="Engineering status" value={result.engineeringStatus.replaceAll("_", " ")} /><Stat label="Terminal balance" value={`${result.balanceReport.summary.balancedCount}/${result.balanceReport.summary.total} balanced`} /><Stat label="Airflow deviation" value={`${result.balanceReport.rows[0].deviationPercent.toFixed(1)}%`} /><Stat label="Critical branch" value={result.branchBalancing.criticalBranchId} /><Stat label="Required capacity" value={`${result.requirements.designCapacityKw.toFixed(2)} kW`} /><Stat label="Required fan ESP" value={`${result.requirements.requiredFanEspPa.toFixed(1)} Pa`} /><Stat label="Selected capacity" value={`${result.selection.selectedCapacityKw.toFixed(2)} kW`} /><Stat label="System selection" value={result.selection.passed ? "PASS" : "FAIL"} /></div><p className="engineering-note"><b>Engineering boundary:</b> balancing status uses measured airflow supplied by the user. Damper pressure-drop values are design targets, not field settings. Final TAB measurements, terminal performance, equipment data and system selection must be verified before construction use.</p></div>}</div></div>;
 }
+function Input({ label, value, onChange, placeholder }) { return <div><label>{label}</label><input type="number" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} /></div>; }
+function Stat({ label, value }) { return <div className="stat"><span>{label}</span><b>{value}</b></div>; }
