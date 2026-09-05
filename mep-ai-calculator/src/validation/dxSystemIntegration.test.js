@@ -9,7 +9,7 @@ const indoor = (overrides = {}) => ({
   manufacturer: "User Catalogue",
   model: "IND-01",
   type: "ceiling-cassette",
-  coolingCapacityKw: 6,
+  coolingCapacityKw: 5.5,
   airflowCfm: 700,
   availableEspPa: 120,
   compatibleOutdoorUnitIds: ["OUT-01"],
@@ -21,7 +21,7 @@ const outdoor = (overrides = {}) => ({
   manufacturer: "User Catalogue",
   model: "OUT-01",
   type: "condensing-unit",
-  coolingCapacityKw: 6,
+  coolingCapacityKw: 5.5,
   ...overrides,
 });
 
@@ -80,8 +80,8 @@ export const runDxSystemIntegrationTests = () => {
 
   add("DXINT-009", "Selected coverage is reported", () => {
     const result = integrateDxSystemSelection({ roomDesignLoadW: 5000, indoorUnits: [indoor()], outdoorUnits: [outdoor()] });
-    expect(Math.abs(result.coverage.coverageRatio - 1.2) < 1e-9, "Coverage ratio should be reported");
-    expect(Math.abs(result.coverage.excessCapacityKW - 1) < 1e-9, "Excess capacity should be reported");
+    expect(Math.abs(result.coverage.coverageRatio - 1.1) < 1e-9, "Coverage ratio should be reported");
+    expect(Math.abs(result.coverage.excessCapacityKW - 0.5) < 1e-9, "Excess capacity should be reported");
   });
 
   add("DXINT-010", "Invalid load is rejected", () => {
