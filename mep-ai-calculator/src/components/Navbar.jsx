@@ -8,7 +8,8 @@ export default function Navbar() {
 
       <div className="links">
         <Link to="/">Home</Link>
-        <Link to="/calculator">Calculator</Link>
+        <Link to="/calculator">Cooling Load</Link>
+        <Link to="/airside">Psychrometrics & Airside</Link>
       </div>
     </div>
   );
