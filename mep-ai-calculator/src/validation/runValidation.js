@@ -29,6 +29,7 @@ import { runEngineeringInputTests } from "./engineeringInputs.test.js";
 import { runPsychrometricDesignTests } from "./psychrometricDesign.test.js";
 import { runDxSystemIntegrationTests } from "./dxSystemIntegration.test.js";
 import { runFullAirDistributionTests } from "./fullAirDistribution.test.js";
+import { runAirBalanceSystemIntegrationTests } from "./airBalanceSystemIntegration.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({ id: result.id, name: result.name, run: () => { if (!result.passed) throw new Error(result.error || `${result.id} failed`); return result; }, groupId, groupName }));
 
@@ -86,6 +87,7 @@ export const runValidation = () => {
     ...expandGroupedTests("PSYCH", "Stage 13 Psychrometric and Airside Design", runPsychrometricDesignTests),
     ...expandGroupedTests("DXINT", "Stage 14 DX System Sizing and Equipment Integration", runDxSystemIntegrationTests),
     ...expandGroupedTests("AIRINT", "Stage 15 Full Air Distribution Integration", runFullAirDistributionTests),
+    ...expandGroupedTests("SYSBAL", "Stage 16 Air Balancing and System Integration", runAirBalanceSystemIntegrationTests),
   ];
   const results = tests.map(({ id, name, run, groupId, groupName }) => { try { const result = run(); return { id, name, status: "PASS", result, groupId, groupName }; } catch (error) { return { id, name, status: "FAIL", error: error instanceof Error ? error.message : String(error), groupId, groupName }; } });
   return { passed: results.every((result) => result.status === "PASS"), total: results.length, passedCount: results.filter((result) => result.status === "PASS").length, failedCount: results.filter((result) => result.status === "FAIL").length, results };
