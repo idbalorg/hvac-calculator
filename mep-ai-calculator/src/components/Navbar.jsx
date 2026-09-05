@@ -10,6 +10,7 @@ export default function Navbar() {
         <Link to="/">Home</Link>
         <Link to="/calculator">Cooling Load</Link>
         <Link to="/airside">Psychrometrics & Airside</Link>
+        <Link to="/dx-sizing">DX Equipment</Link>
       </div>
     </div>
   );
