@@ -24,6 +24,7 @@ import { runSystemDecisionTests } from "./systemDecision.test.js";
 import { runProjectValidationTests } from "./projectValidation.test.js";
 import { runProjectRoomTests } from "./projectRooms.test.js";
 import { runRoomLoadEngineTests } from "./roomLoadEngine.test.js";
+import { runDesignConditionTests } from "./designConditions.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
   id: result.id,
@@ -82,6 +83,7 @@ export const runValidation = () => {
     ...expandGroupedTests("PROJ", "Project Input and Geometry", runProjectValidationTests),
     ...expandGroupedTests("ROOM", "Multi-Room Project Input", runProjectRoomTests),
     ...expandGroupedTests("LOADENG", "Component-Based Room Load Engine", runRoomLoadEngineTests),
+    ...expandGroupedTests("COND", "Project Design Conditions", runDesignConditionTests),
   ];
 
   const results = tests.map(({ id, name, run, groupId, groupName }) => {
