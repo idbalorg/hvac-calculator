@@ -5,20 +5,9 @@ import AirsideDesign from "./pages/AirsideDesign";
 import DxSystemSizing from "./pages/DxSystemSizing";
 import AirDistribution from "./pages/AirDistribution";
 import AirBalancingSystem from "./pages/AirBalancingSystem";
+import SystemCommissioning from "./pages/SystemCommissioning";
 import Navbar from "./components/Navbar";
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/calculator" element={<Calculator />} />
-        <Route path="/airside" element={<AirsideDesign />} />
-        <Route path="/dx-sizing" element={<DxSystemSizing />} />
-        <Route path="/air-distribution" element={<AirDistribution />} />
-        <Route path="/air-balancing" element={<AirBalancingSystem />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <BrowserRouter><Navbar /><Routes><Route path="/" element={<Landing />} /><Route path="/calculator" element={<Calculator />} /><Route path="/airside" element={<AirsideDesign />} /><Route path="/dx-sizing" element={<DxSystemSizing />} /><Route path="/air-distribution" element={<AirDistribution />} /><Route path="/air-balancing" element={<AirBalancingSystem />} /><Route path="/commissioning" element={<SystemCommissioning />} /></Routes></BrowserRouter>;
 }
