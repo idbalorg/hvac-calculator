@@ -82,7 +82,7 @@ export const runAirBalanceSystemIntegrationTests = () => {
   const actionResult = integrateAirBalancingAndSystem({
     ...baseInput,
     terminals: [
-      { id: "T1", roomId: "Office A", designAirflowCfm: 400, measuredAirflowCfm: 360 },
+      { id: "T1", roomId: "Office A", designAirflowCfm: 400, measuredAirflowCfm: 350 },
       { id: "T2", roomId: "Office B", designAirflowCfm: 300, measuredAirflowCfm: 300 },
     ],
   });
