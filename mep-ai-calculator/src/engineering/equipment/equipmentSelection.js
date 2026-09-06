@@ -156,24 +156,56 @@ export const selectEquipmentPair = ({
   });
   const outdoorCatalogue = normalizeEquipmentCatalogue(outdoorUnits);
   const pairs = [];
-  for (const indoor of indoorResult.candidates) {
+  const pairEvaluations = [];
+
+  for (const indoorEvaluation of indoorResult.evaluated) {
     for (const outdoor of outdoorCatalogue) {
-      const compatibility = validateEquipmentPair({ indoorUnit: indoor.equipment, outdoorUnit: outdoor });
-      if (compatibility.compatible) {
+      const compatibility = validateEquipmentPair({ indoorUnit: indoorEvaluation.equipment, outdoorUnit: outdoor });
+      const pairAccepted = indoorEvaluation.acceptable && compatibility.compatible;
+      pairEvaluations.push({
+        indoorUnit: indoorEvaluation.equipment,
+        outdoorUnit: outdoor,
+        indoorEvaluation,
+        compatibility,
+        acceptable: pairAccepted,
+        reasons: [
+          ...indoorEvaluation.reasons,
+          ...compatibility.reasons,
+        ],
+      });
+      if (pairAccepted) {
         pairs.push({
-          indoorUnit: indoor.equipment,
+          indoorUnit: indoorEvaluation.equipment,
           outdoorUnit: outdoor,
-          indoorEvaluation: indoor,
+          indoorEvaluation,
           compatibility,
         });
       }
     }
   }
+
   pairs.sort((a, b) => a.indoorEvaluation.excessCapacityKw - b.indoorEvaluation.excessCapacityKw || a.indoorUnit.id.localeCompare(b.indoorUnit.id));
+
+  const rejectionCounts = {};
+  for (const evaluation of pairEvaluations.filter((item) => !item.acceptable)) {
+    for (const reason of new Set(evaluation.reasons)) rejectionCounts[reason] = (rejectionCounts[reason] ?? 0) + 1;
+  }
+
   return {
     requiredCapacityKw,
+    requiredAirflowCfm,
+    requiredEspPa,
     pairs,
     selected: pairs[0] ?? null,
+    indoorSelection: indoorResult,
+    pairEvaluations,
+    diagnostics: {
+      indoorUnitsEvaluated: indoorResult.evaluated.length,
+      indoorCandidates: indoorResult.candidates.length,
+      outdoorUnitsEvaluated: outdoorCatalogue.length,
+      pairCombinationsEvaluated: pairEvaluations.length,
+      rejectionCounts,
+    },
     warnings: pairs.length === 0 ? ["NO_VALID_INDOOR_OUTDOOR_PAIR"] : [],
   };
 };
