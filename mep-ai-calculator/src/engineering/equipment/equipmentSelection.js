@@ -16,7 +16,13 @@ const airflowCheck = (equipment, requiredAirflowCfm, airflowToleranceFraction) =
   if (!range) return { status: "MISSING_DATA", pass: false, marginCfm: null, marginFraction: null };
   const lowerBound = requiredAirflowCfm * (1 - airflowToleranceFraction);
   const upperBound = requiredAirflowCfm * (1 + airflowToleranceFraction);
-  const pass = range.minCfm <= upperBound && range.maxCfm >= lowerBound;
+  const hasSingleRatedAirflow = equipment.airflowCfm !== undefined;
+  // A single rated airflow is treated as available design airflow, so it must
+  // meet or exceed the required airflow. A min/max range must contain the
+  // required design airflow so the unit can be selected at that duty point.
+  const pass = hasSingleRatedAirflow
+    ? range.maxCfm >= lowerBound
+    : range.minCfm <= upperBound && range.maxCfm >= lowerBound;
   const marginCfm = range.maxCfm - requiredAirflowCfm;
   return {
     status: pass ? "PASS" : "FAIL",
