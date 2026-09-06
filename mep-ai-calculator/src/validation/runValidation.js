@@ -30,6 +30,7 @@ import { runPsychrometricDesignTests } from "./psychrometricDesign.test.js";
 import { runDxSystemIntegrationTests } from "./dxSystemIntegration.test.js";
 import { runFullAirDistributionTests } from "./fullAirDistribution.test.js";
 import { runAirBalanceSystemIntegrationTests } from "./airBalanceSystemIntegration.test.js";
+import { runSystemCommissioningTests } from "./systemCommissioning.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({ id: result.id, name: result.name, run: () => { if (!result.passed) throw new Error(result.error || `${result.id} failed`); return result; }, groupId, groupName }));
 
@@ -55,7 +56,7 @@ export const runValidation = () => {
     { id: "UNIT-VENT-004", name: "Ventilation Latent and Total Load", run: testVentilationLatentAndTotalLoad },
     { id: "UNIT-INF-001", name: "Infiltration Airflow from ACH", run: testInfiltrationAirflowFromACH },
     { id: "UNIT-INF-002", name: "Zero ACH Infiltration", run: testInfiltrationZeroACH },
-    { id: "UNIT-INF-003", name: "Infiltration Sensible Load", run: testInfiltrationSensibleLoad },
+    { id: "UNIT-INF-003", name: "Infiltration Sensible Load", run: testInfiltrationSensibileLoad },
     { id: "UNIT-INF-004", name: "Infiltration Latent and Total Load", run: testInfiltrationLatentAndTotalLoad },
     { id: "UNIT-ROOM-001", name: "Room Load Assembly", run: testRoomLoadAssembly },
     { id: "UNIT-ROOM-002", name: "Room Load Missing Components", run: testRoomLoadMissingComponents },
@@ -88,6 +89,7 @@ export const runValidation = () => {
     ...expandGroupedTests("DXINT", "Stage 14 DX System Sizing and Equipment Integration", runDxSystemIntegrationTests),
     ...expandGroupedTests("AIRINT", "Stage 15 Full Air Distribution Integration", runFullAirDistributionTests),
     ...expandGroupedTests("SYSBAL", "Stage 16 Air Balancing and System Integration", runAirBalanceSystemIntegrationTests),
+    ...expandGroupedTests("COMM", "Stage 17 System Commissioning and Handover", runSystemCommissioningTests),
   ];
   const results = tests.map(({ id, name, run, groupId, groupName }) => { try { const result = run(); return { id, name, status: "PASS", result, groupId, groupName }; } catch (error) { return { id, name, status: "FAIL", error: error instanceof Error ? error.message : String(error), groupId, groupName }; } });
   return { passed: results.every((result) => result.status === "PASS"), total: results.length, passedCount: results.filter((result) => result.status === "PASS").length, failedCount: results.filter((result) => result.status === "FAIL").length, results };
