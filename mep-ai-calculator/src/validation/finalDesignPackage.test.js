@@ -49,5 +49,15 @@ export const runFinalDesignPackageTests = () => {
   if (!expectThrows(() => buildFinalDesignPackage({ ...base, loadResults: [] }))) throw new Error("Missing load results were not rejected");
   tests.push({ id: "PKG-010", name: "Input validation", passed: true });
 
+  const directDischargePackage = buildFinalDesignPackage({
+    ...base,
+    equipment: [{ ...base.equipment[0], requiredEspPa: 0, selectedEspPa: 0 }],
+    ducts: [],
+    systemSummary: null,
+  });
+  if (directDischargePackage.report.schedules.ducts.length !== 0) throw new Error("Direct-discharge package should allow an empty duct schedule");
+  if (!directDischargePackage.report.validation.passed) throw new Error("Direct-discharge package was rejected");
+  tests.push({ id: "PKG-011", name: "Direct-discharge package without duct schedule", passed: true });
+
   return tests;
 };
