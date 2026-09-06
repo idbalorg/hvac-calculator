@@ -17,7 +17,7 @@ export const runFinalDesignPackageTests = () => {
   const tests = [];
   const result = buildFinalDesignPackage(base);
 
-  if (result.packageVersion !== "17.0.0") throw new Error("Package version failed");
+  if (result.packageVersion !== "18.0.0") throw new Error("Package version failed");
   tests.push({ id: "PKG-001", name: "Package version", passed: true });
 
   if (result.report.reportVersion !== "1.0") throw new Error("Report version failed");
