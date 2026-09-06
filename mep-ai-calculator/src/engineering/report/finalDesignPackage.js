@@ -55,7 +55,7 @@ export const buildFinalDesignPackage = ({
   });
 
   return {
-    packageVersion: "17.0.0",
+    packageVersion: "18.0.0",
     generatedAt,
     report,
     readiness: {
