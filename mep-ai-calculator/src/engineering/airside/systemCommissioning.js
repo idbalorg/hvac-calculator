@@ -13,7 +13,7 @@ const assertPositive = (value, name) => {
 };
 
 /**
- * Stage 17 commissioning/handover checks.
+ * Stage 17 commissioning/handover checks for ducted air systems.
  * Field measurements and manufacturer data are caller supplied. The engine
  * does not assume universal commissioning tolerances or equipment limits.
  */
@@ -57,6 +57,7 @@ export const calculateCommissioningChecks = ({
 
   const checks = [airflowPass, capacityPass, espPass].filter((value) => value !== null);
   return {
+    applicability: "DUCTED_AIR_SYSTEM",
     airflowDeviationPercent,
     airflowPass,
     capacityDeviationPercent,
@@ -66,6 +67,61 @@ export const calculateCommissioningChecks = ({
     status: checks.every(Boolean) ? "PASS" : "ACTION_REQUIRED",
     verificationRequired: true,
   };
+};
+
+/**
+ * Direct-discharge systems do not have a supply-duct network, branch airflow,
+ * or fan external-static-pressure design basis to commission. Their handover
+ * path is therefore equipment/space performance and installation verification.
+ */
+export const buildDirectDischargeCommissioning = ({
+  systemType,
+  distributionType = "DIRECT_DISCHARGE",
+  projectId,
+  systemId,
+  checks = {},
+}) => {
+  if (typeof projectId !== "string" || !projectId.trim()) throw new Error("projectId is required");
+  if (typeof systemId !== "string" || !systemId.trim()) throw new Error("systemId is required");
+
+  const items = [
+    { id: "EQUIPMENT-OPERATION", name: "Indoor unit operation and controls verified", status: checks.equipmentOperational ? "PASS" : "PENDING" },
+    { id: "ROOM-PERFORMANCE", name: "Room cooling performance verified", status: checks.roomPerformance ? "PASS" : "PENDING" },
+    { id: "CONDENSATE", name: "Condensate drainage verified", status: checks.condensateDrainage ? "PASS" : "PENDING" },
+    { id: "REFRIGERANT", name: "Refrigerant circuit / installation verified", status: checks.refrigerantInstallation ? "PASS" : "PENDING" },
+    { id: "ELECTRICAL", name: "Electrical supply and protection verified", status: checks.electrical ? "PASS" : "PENDING" },
+    { id: "CONTROLS", name: "Controls and operating sequence verified", status: checks.controlsVerified ? "PASS" : "PENDING" },
+    { id: "DOCUMENTATION", name: "As-built and commissioning documentation complete", status: checks.documentationVerified ? "PASS" : "PENDING" },
+  ];
+
+  const complete = items.every((item) => item.status === "PASS");
+  const commissioningStatus = complete ? "READY_FOR_HANDOVER" : "FIELD_VERIFICATION_REQUIRED";
+  const commissioningChecks = {
+    applicability: "DIRECT_DISCHARGE",
+    systemType,
+    distributionType,
+    airflowDeviationPercent: null,
+    airflowPass: null,
+    capacityDeviationPercent: null,
+    capacityPass: null,
+    espDeviationPercent: null,
+    espPass: null,
+    status: commissioningStatus,
+    verificationRequired: true,
+  };
+
+  const checklist = { items, complete };
+  const handover = {
+    projectId,
+    systemId,
+    commissioningStatus,
+    checks: commissioningChecks,
+    checklist,
+    verificationRequired: true,
+    handoverReady: complete,
+  };
+
+  return { checks: commissioningChecks, checklist, handover };
 };
 
 export const buildCommissioningChecklist = ({
