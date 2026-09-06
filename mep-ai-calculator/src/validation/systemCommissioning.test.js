@@ -1,4 +1,4 @@
-import { calculateCommissioningChecks, buildCommissioningChecklist, buildCommissioningHandover } from "../engineering/airside/systemCommissioning.js";
+import { calculateCommissioningChecks, buildCommissioningChecklist, buildCommissioningHandover, buildDirectDischargeCommissioning } from "../engineering/airside/systemCommissioning.js";
 
 const pass = (id, name) => ({ id, name, passed: true });
 const expectThrows = (fn) => { try { fn(); return false; } catch { return true; } };
@@ -48,6 +48,29 @@ export const runSystemCommissioningTests = () => {
   if (!expectThrows(() => calculateCommissioningChecks({ ...base, measuredAirflowCfm: -1 }))) throw new Error("Negative measurement was accepted");
   if (!expectThrows(() => buildCommissioningHandover({ projectId: "", systemId: "SYSTEM-01", checks, checklist: completeChecklist }))) throw new Error("Invalid project id was accepted");
   tests.push(pass("COMM-008", "Commissioning input validation"));
+
+  const direct = buildDirectDischargeCommissioning({
+    systemType: "SPLIT_DX",
+    distributionType: "DIRECT_DISCHARGE",
+    projectId: "PROJECT-01",
+    systemId: "SYSTEM-01",
+    checks: {
+      equipmentOperational: true,
+      roomPerformance: true,
+      condensateDrainage: true,
+      refrigerantInstallation: true,
+      electrical: true,
+      controlsVerified: true,
+      documentationVerified: true,
+    },
+  });
+  if (direct.checks.status !== "READY_FOR_HANDOVER" || !direct.checklist.complete || !direct.handover.handoverReady) throw new Error("Direct-discharge commissioning path failed");
+  if (direct.checks.airflowPass !== null || direct.checks.espPass !== null) throw new Error("Direct-discharge path should not require duct airflow or fan ESP checks");
+  tests.push(pass("COMM-009", "Direct-discharge commissioning path"));
+
+  const directPending = buildDirectDischargeCommissioning({ systemType: "SPLIT_DX", projectId: "PROJECT-01", systemId: "SYSTEM-01" });
+  if (directPending.checks.status !== "FIELD_VERIFICATION_REQUIRED" || directPending.handover.handoverReady) throw new Error("Direct-discharge pending state failed");
+  tests.push(pass("COMM-010", "Direct-discharge pending verification"));
 
   return tests;
 };
