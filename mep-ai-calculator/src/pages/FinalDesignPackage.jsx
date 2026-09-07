@@ -99,13 +99,10 @@ export default function FinalDesignPackage() {
 
   const summary = packageResult ? summarizeFinalDesignPackage(packageResult) : null;
 
-  return <div className="container">
-    <div className="page-header">
-      <div><p className="eyebrow">ENGINEERING WORKFLOW · STAGE 18</p><h1 className="title">Final Design Package</h1><p className="subtitle">Compile the completed engineering workflow into a structured design package for review, coordination and export.</p></div>
-      <span className="version-badge">Package 18.0</span>
-    </div>
+  return <div className="container final-design-package">
+    <div className="page-header"><div><p className="eyebrow">ENGINEERING WORKFLOW · STAGE 18</p><h1 className="title">Final Design Package</h1><p className="subtitle">Structured engineering schedules and verification summary.</p></div><span className="version-badge">Package 18.0</span></div>
 
-    <div className="card">
+    <div className="card package-controls no-print">
       <div className="section-heading"><h3>Package Criteria</h3><span>01</span></div>
       {!saved && <p className="form-note">Create and save a project first.</p>}
       <div className="input-grid">
@@ -120,8 +117,8 @@ export default function FinalDesignPackage() {
     </div>
 
     {packageResult && <>
-      <div className="card">
-        <div className="section-heading"><h3>Package Summary</h3><span>02</span></div>
+      <div className="card print-section">
+        <div className="section-heading"><h3>Package Summary</h3><span>01</span></div>
         <div className="stat-grid">
           <Stat label="Validation" value={summary.validationPassed ? "PASS" : "FAIL"} />
           <Stat label="Rooms" value={String(summary.roomCount)} />
@@ -134,12 +131,12 @@ export default function FinalDesignPackage() {
         </div>
       </div>
 
-      <ScheduleTable title="Room Schedule" number="03" columns={["Room", "Area", "Sensible", "Latent", "Total", "Supply Air"]} rows={packageResult.report.schedules.rooms.map((r) => [r.roomId, `${n(r.areaM2).toFixed(1)} m²`, `${n(r.sensibleLoadKw).toFixed(2)} kW`, `${n(r.latentLoadKw).toFixed(2)} kW`, `${n(r.totalLoadKw).toFixed(2)} kW`, `${n(r.supplyAirflowCfm).toFixed(0)} CFM`])} />
-      <ScheduleTable title="Equipment Schedule" number="04" columns={["Equipment", "System", "Type", "Capacity", "Airflow", "ESP"]} rows={packageResult.report.schedules.equipment.map((e) => [e.equipmentId, e.systemId, e.type, `${n(e.capacityKw).toFixed(2)} kW`, `${n(e.selectedAirflowCfm).toFixed(0)} CFM`, `${n(e.selectedEspPa).toFixed(0)} Pa`])} />
-      <ScheduleTable title="Duct Schedule" number="05" columns={["Duct", "System", "Type", "Airflow", "Size", "Velocity", "Loss"]} rows={packageResult.report.schedules.ducts.map((d) => [d.ductId, d.systemId, d.sectionType, `${n(d.airflowCfm).toFixed(0)} CFM`, `${n(d.widthM).toFixed(2)} × ${n(d.heightM).toFixed(2)} m`, `${n(d.velocityMps).toFixed(1)} m/s`, `${n(d.pressureLossPa).toFixed(1)} Pa`])} />
+      <ScheduleTable title="Room Schedule" number="02" columns={["Room", "Area", "Sensible", "Latent", "Total", "Supply Air"]} rows={packageResult.report.schedules.rooms.map((r) => [r.roomId, `${n(r.areaM2).toFixed(1)} m²`, `${n(r.sensibleLoadKw).toFixed(2)} kW`, `${n(r.latentLoadKw).toFixed(2)} kW`, `${n(r.totalLoadKw).toFixed(2)} kW`, `${n(r.supplyAirflowCfm).toFixed(0)} CFM`])} />
+      <ScheduleTable title="Equipment Schedule" number="03" columns={["Equipment", "System", "Type", "Capacity", "Airflow", "ESP"]} rows={packageResult.report.schedules.equipment.map((e) => [e.equipmentId, e.systemId, e.type, `${n(e.capacityKw).toFixed(2)} kW`, `${n(e.selectedAirflowCfm).toFixed(0)} CFM`, `${n(e.selectedEspPa).toFixed(0)} Pa`])} />
+      <ScheduleTable title="Duct Schedule" number="04" columns={["Duct", "System", "Type", "Airflow", "Size", "Velocity", "Loss"]} rows={packageResult.report.schedules.ducts.map((d) => [d.ductId, d.systemId, d.sectionType, `${n(d.airflowCfm).toFixed(0)} CFM`, `${n(d.widthM).toFixed(2)} × ${n(d.heightM).toFixed(2)} m`, `${n(d.velocityMps).toFixed(1)} m/s`, `${n(d.pressureLossPa).toFixed(1)} Pa`])} />
 
-      <div className="card">
-        <div className="section-heading"><h3>Engineering Validation</h3><span>06</span></div>
+      <div className="card print-section">
+        <div className="section-heading"><h3>Engineering Validation</h3><span>05</span></div>
         <Stat label="Overall status" value={packageResult.report.validation.passed ? "PASS" : "FAIL"} />
         {packageResult.report.validation.equipmentChecks.map((check) => <div className="check-row" key={check.equipmentId}><span>{check.equipmentId}</span><span>Capacity: {check.capacity.status}</span><span>Airflow: {check.airflow.status}</span><b>ESP: {check.esp.status}</b></div>)}
         <p className="engineering-note"><b>Engineering boundary:</b> this package is a structured design and review deliverable. It does not make the design construction-ready automatically. Final verification requires project-specific criteria, detailed drawings, manufacturer-certified data, coordination, TAB/commissioning measurements and applicable code review.</p>
@@ -150,4 +147,4 @@ export default function FinalDesignPackage() {
 
 function Input({ label, value, onChange, placeholder }) { return <div><label>{label}</label><input type="number" min="0" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} /></div>; }
 function Stat({ label, value }) { return <div className="stat"><span>{label}</span><b>{value}</b></div>; }
-function ScheduleTable({ title, number, columns, rows }) { return <div className="card"><div className="section-heading"><h3>{title}</h3><span>{number}</span></div>{rows.length ? <div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div> : <p className="form-note">No records were available from the upstream stage.</p>}</div>; }
+function ScheduleTable({ title, number, columns, rows }) { return <div className="card print-section"><div className="section-heading"><h3>{title}</h3><span>{number}</span></div>{rows.length ? <div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div> : <p className="form-note">Not applicable for the selected system / distribution arrangement.</p>}</div>; }
