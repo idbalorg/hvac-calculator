@@ -59,5 +59,17 @@ export const runFinalDesignPackageTests = () => {
   if (!directDischargePackage.report.validation.passed) throw new Error("Direct-discharge package was rejected");
   tests.push({ id: "PKG-011", name: "Direct-discharge package without duct schedule", passed: true });
 
+  const currentLoadShapePackage = buildFinalDesignPackage({
+    ...base,
+    loadResults: [{
+      roomId: "R1",
+      rawLoad: { sensibleW: 8000, latentW: 2000, totalW: 10000 },
+      designLoad: { sensibleW: 8800, latentW: 2200, totalW: 11000 },
+    }],
+  });
+  const currentRoom = currentLoadShapePackage.report.schedules.rooms[0];
+  if (currentRoom.sensibleLoadKw !== 8 || currentRoom.latentLoadKw !== 2 || currentRoom.totalLoadKw !== 11) throw new Error("Current cooling-load result shape was not mapped correctly");
+  tests.push({ id: "PKG-012", name: "Current cooling-load result mapping", passed: true });
+
   return tests;
 };
