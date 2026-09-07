@@ -2,16 +2,21 @@ import { buildDesignReport } from "./designReport.js";
 
 const n = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
-const normalizeRoom = (room, load, airside) => ({
-  roomId: room.roomId ?? room.id,
-  roomName: room.roomName ?? room.name ?? room.id,
-  areaM2: n(room.areaM2, n(room.area)),
-  sensibleLoadKw: n(load?.sensibleLoadW) / 1000,
-  latentLoadKw: n(load?.latentLoadW) / 1000,
-  totalLoadKw: n(load?.designLoadW ?? load?.totalLoadW) / 1000,
-  supplyAirflowCfm: n(airside?.airflow?.airflowM3s) * 2118.88,
-  terminalCount: n(airside?.terminalCount, 1),
-});
+const normalizeRoom = (room, load, airside) => {
+  const rawLoad = load?.rawLoad ?? load;
+  const designLoad = load?.designLoad ?? load;
+
+  return {
+    roomId: room.roomId ?? room.id,
+    roomName: room.roomName ?? room.name ?? room.id,
+    areaM2: n(room.areaM2, n(room.area)),
+    sensibleLoadKw: n(rawLoad?.sensibleW ?? load?.sensibleLoadW) / 1000,
+    latentLoadKw: n(rawLoad?.latentW ?? load?.latentLoadW) / 1000,
+    totalLoadKw: n(designLoad?.totalW ?? load?.designLoadW ?? load?.totalLoadW) / 1000,
+    supplyAirflowCfm: n(airside?.airflow?.airflowM3s) * 2118.88,
+    terminalCount: n(airside?.terminalCount, 1),
+  };
+};
 
 export const buildFinalDesignPackage = ({
   project,
