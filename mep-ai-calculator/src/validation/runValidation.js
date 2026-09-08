@@ -35,6 +35,7 @@ import { runFinalDesignPackageTests } from "./finalDesignPackage.test.js";
 import { runStandardsTraceabilityTests } from "./standardsTraceability.test.js";
 import { runEngineeringInputGuidanceTests } from "./engineeringInputGuidance.test.js";
 import { runEngineeringReviewTests } from "./engineeringReview.test.js";
+import { runEngineeringDecisionTests } from "./engineeringDecision.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
   id: result.id,
@@ -107,6 +108,7 @@ export const runValidation = () => {
     ...expandGroupedTests("TRACE", "Engineering Standards and Traceability", runStandardsTraceabilityTests),
     ...expandGroupedTests("INPUTHELP", "Engineering Input Intelligence", runEngineeringInputGuidanceTests),
     ...expandGroupedTests("REVIEW", "Engineering Review and Design Checks", runEngineeringReviewTests),
+    ...expandGroupedTests("DECISION", "Engineering Exception Decision Management", runEngineeringDecisionTests),
   ];
 
   const results = tests.map(({ id, name, run, groupId, groupName }) => {
