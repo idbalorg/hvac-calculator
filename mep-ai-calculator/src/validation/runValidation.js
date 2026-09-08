@@ -34,6 +34,7 @@ import { runSystemCommissioningTests } from "./systemCommissioning.test.js";
 import { runFinalDesignPackageTests } from "./finalDesignPackage.test.js";
 import { runStandardsTraceabilityTests } from "./standardsTraceability.test.js";
 import { runEngineeringInputGuidanceTests } from "./engineeringInputGuidance.test.js";
+import { runEngineeringReviewTests } from "./engineeringReview.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
   id: result.id,
@@ -105,6 +106,7 @@ export const runValidation = () => {
     ...expandGroupedTests("PKG", "Stage 18 Final Design Package", runFinalDesignPackageTests),
     ...expandGroupedTests("TRACE", "Engineering Standards and Traceability", runStandardsTraceabilityTests),
     ...expandGroupedTests("INPUTHELP", "Engineering Input Intelligence", runEngineeringInputGuidanceTests),
+    ...expandGroupedTests("REVIEW", "Engineering Review and Design Checks", runEngineeringReviewTests),
   ];
 
   const results = tests.map(({ id, name, run, groupId, groupName }) => {
@@ -112,14 +114,7 @@ export const runValidation = () => {
       const result = run();
       return { id, name, status: "PASS", result, groupId, groupName };
     } catch (error) {
-      return {
-        id,
-        name,
-        status: "FAIL",
-        error: error instanceof Error ? error.message : String(error),
-        groupId,
-        groupName,
-      };
+      return { id, name, status: "FAIL", error: error instanceof Error ? error.message : String(error), groupId, groupName };
     }
   });
 
