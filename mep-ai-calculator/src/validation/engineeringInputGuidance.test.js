@@ -1,6 +1,6 @@
 import { getEngineeringInputGuidance, getEngineeringInputGuidanceKeys } from "../components/engineeringInputGuidance.js";
 
-export default function runEngineeringInputGuidanceTests() {
+export function runEngineeringInputGuidanceTests() {
   const results = [];
   const check = (name, condition, details = "") => {
     results.push({ name, passed: Boolean(condition), details });
