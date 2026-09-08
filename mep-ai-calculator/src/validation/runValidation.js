@@ -34,7 +34,16 @@ import { runSystemCommissioningTests } from "./systemCommissioning.test.js";
 import { runFinalDesignPackageTests } from "./finalDesignPackage.test.js";
 import { runStandardsTraceabilityTests } from "./standardsTraceability.test.js";
 
-const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({ id: result.id, name: result.name, run: () => { if (!result.passed) throw new Error(result.error || `${result.id} failed`); return result; }, groupId, groupName }));
+const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({
+  id: result.id,
+  name: result.name,
+  run: () => {
+    if (!result.passed) throw new Error(result.error || `${result.id} failed`);
+    return result;
+  },
+  groupId,
+  groupName,
+}));
 
 export const runValidation = () => {
   const tests = [
@@ -95,8 +104,30 @@ export const runValidation = () => {
     ...expandGroupedTests("PKG", "Stage 18 Final Design Package", runFinalDesignPackageTests),
     ...expandGroupedTests("TRACE", "Engineering Standards and Traceability", runStandardsTraceabilityTests),
   ];
-  const results = tests.map(({ id, name, run, groupId, groupName }) => { try { const result = run(); return { id, name, status: "PASS", result, groupId, groupName }; } catch (error) { return { id, name, status: "FAIL", error: error instanceof Error ? error.message : String(error), groupId, groupName }; });
-  return { passed: results.every((result) => result.status === "PASS"), total: results.length, passedCount: results.filter((result) => result.status === "PASS").length, failedCount: results.filter((result) => result.status === "FAIL").length, results };
+
+  const results = tests.map(({ id, name, run, groupId, groupName }) => {
+    try {
+      const result = run();
+      return { id, name, status: "PASS", result, groupId, groupName };
+    } catch (error) {
+      return {
+        id,
+        name,
+        status: "FAIL",
+        error: error instanceof Error ? error.message : String(error),
+        groupId,
+        groupName,
+      };
+    }
+  });
+
+  return {
+    passed: results.every((result) => result.status === "PASS"),
+    total: results.length,
+    passedCount: results.filter((result) => result.status === "PASS").length,
+    failedCount: results.filter((result) => result.status === "FAIL").length,
+    results,
+  };
 };
 
 const validationResult = runValidation();
@@ -104,5 +135,8 @@ console.log("HVAC Engineering Validation");
 console.log("===========================");
 console.log("Status: " + (validationResult.passed ? "PASS" : "FAIL"));
 console.log(`Tests: ${validationResult.passedCount}/${validationResult.total} passed`);
-for (const result of validationResult.results) { console.log(`${result.id} | ${result.name} | ${result.status}`); if (result.error) console.error(`  ${result.error}`); }
+for (const result of validationResult.results) {
+  console.log(`${result.id} | ${result.name} | ${result.status}`);
+  if (result.error) console.error(`  ${result.error}`);
+}
 if (!validationResult.passed) process.exitCode = 1;
