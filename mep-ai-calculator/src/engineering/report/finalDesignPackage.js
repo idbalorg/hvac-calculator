@@ -1,20 +1,26 @@
 import { buildDesignReport } from "./designReport.js";
+import { buildStandardsTraceability } from "../standards/standardsTraceability.js";
 
 const n = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
 const normalizeRoom = (room, load, airside) => {
   const rawLoad = load?.rawLoad ?? load;
   const designLoad = load?.designLoad ?? load;
+  const sensibleW = n(rawLoad?.sensibleW ?? load?.sensibleLoadW);
+  const totalW = n(rawLoad?.totalW ?? load?.totalLoadW);
 
   return {
     roomId: room.roomId ?? room.id,
     roomName: room.roomName ?? room.name ?? room.id,
     areaM2: n(room.areaM2, n(room.area)),
-    sensibleLoadKw: n(rawLoad?.sensibleW ?? load?.sensibleLoadW) / 1000,
+    sensibleLoadKw: sensibleW / 1000,
     latentLoadKw: n(rawLoad?.latentW ?? load?.latentLoadW) / 1000,
     totalLoadKw: n(designLoad?.totalW ?? load?.designLoadW ?? load?.totalLoadW) / 1000,
+    sensibleHeatRatio: n(rawLoad?.sensibleHeatRatio, totalW > 0 ? sensibleW / totalW : 0),
     supplyAirflowCfm: n(airside?.airflow?.airflowM3s) * 2118.88,
     terminalCount: n(airside?.terminalCount, 1),
+    outdoorAirflowCfm: n(airside?.outdoorAirflowCfm ?? airside?.ventilation?.outdoorAirflowCfm ?? room.outdoorAirflowCfm),
+    dedicatedVentilationRequired: room.dedicatedVentilationRequired === true,
   };
 };
 
@@ -59,10 +65,19 @@ export const buildFinalDesignPackage = ({
     generatedAt,
   });
 
+  const standardsTraceability = buildStandardsTraceability({
+    rooms: normalizedRooms,
+    equipment: equipment || [],
+    ducts: ducts || [],
+    projectCriteria: criteria,
+    systemSummary,
+  });
+
   return {
     packageVersion: "18.0.0",
     generatedAt,
     report,
+    standardsTraceability,
     readiness: {
       reportGenerated: true,
       validationPassed: report.validation.passed,
