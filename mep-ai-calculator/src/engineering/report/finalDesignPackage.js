@@ -3,6 +3,7 @@ import { buildStandardsTraceability } from "../standards/standardsTraceability.j
 import { buildResultTraceability } from "./resultTraceability.js";
 import { buildEngineeringReview } from "../review/engineeringReview.js";
 import { buildEngineeringDecision } from "../review/engineeringDecision.js";
+import { buildEngineeringApproval } from "../review/engineeringApproval.js";
 
 const n = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
@@ -36,6 +37,7 @@ export const buildFinalDesignPackage = ({
   ducts,
   systemSummary = null,
   criteria = {},
+  approval = null,
   generatedAt = null,
 }) => {
   if (!project || typeof project !== "object") throw new Error("project is required");
@@ -62,54 +64,28 @@ export const buildFinalDesignPackage = ({
     ...criteria,
   };
 
-  const report = buildDesignReport({
-    project,
-    rooms: normalizedRooms,
-    equipment: normalizedEquipment,
-    ducts: normalizedDucts,
-    systemSummary,
-    criteria: reportCriteria,
-    generatedAt,
-  });
-
-  const standardsTraceability = buildStandardsTraceability({
-    rooms: normalizedRooms,
-    equipment: normalizedEquipment,
-    ducts: normalizedDucts,
-    projectCriteria: criteria,
-    systemSummary,
-  });
-
-  const resultTraceability = buildResultTraceability({
-    rooms: normalizedRooms,
-    equipment: normalizedEquipment,
-    ducts: normalizedDucts,
-    systemSummary,
-  });
-
-  const engineeringReview = buildEngineeringReview({
-    rooms: normalizedRooms,
-    equipment: normalizedEquipment,
-    ducts: normalizedDucts,
-    systemSummary,
-    criteria,
-  });
-
+  const report = buildDesignReport({ project, rooms: normalizedRooms, equipment: normalizedEquipment, ducts: normalizedDucts, systemSummary, criteria: reportCriteria, generatedAt });
+  const standardsTraceability = buildStandardsTraceability({ rooms: normalizedRooms, equipment: normalizedEquipment, ducts: normalizedDucts, projectCriteria: criteria, systemSummary });
+  const resultTraceability = buildResultTraceability({ rooms: normalizedRooms, equipment: normalizedEquipment, ducts: normalizedDucts, systemSummary });
+  const engineeringReview = buildEngineeringReview({ rooms: normalizedRooms, equipment: normalizedEquipment, ducts: normalizedDucts, systemSummary, criteria });
   const engineeringDecision = buildEngineeringDecision({ engineeringReview });
+  const engineeringApproval = buildEngineeringApproval({ engineeringDecision, approval });
 
   return {
-    packageVersion: "21.0.0",
+    packageVersion: "22.0.0",
     generatedAt,
     report,
     standardsTraceability,
     resultTraceability,
     engineeringReview,
     engineeringDecision,
+    engineeringApproval,
     readiness: {
       reportGenerated: true,
       validationPassed: report.validation.passed,
       engineeringReviewPassed: engineeringReview.status === "PASS",
       engineeringDecisionStatus: engineeringDecision.status,
+      engineeringApprovalStatus: engineeringApproval.status,
       readinessScore: engineeringDecision.readinessScore,
       verificationRequired: true,
       constructionReady: false,
@@ -125,8 +101,10 @@ export const summarizeFinalDesignPackage = (designPackage) => {
     validationPassed: validation.passed,
     engineeringReviewStatus: designPackage.engineeringReview?.status || "REVIEW_REQUIRED",
     engineeringDecisionStatus: designPackage.engineeringDecision?.status || "REVIEW_REQUIRED",
+    engineeringApprovalStatus: designPackage.engineeringApproval?.status || "PENDING",
     readinessScore: designPackage.engineeringDecision?.readinessScore ?? 0,
     exceptionCount: designPackage.engineeringDecision?.summary?.exceptionCount ?? 0,
+    unresolvedExceptionCount: designPackage.engineeringApproval?.summary?.unresolved ?? designPackage.engineeringDecision?.summary?.exceptionCount ?? 0,
     roomCount: summary.roomCount,
     equipmentCount: summary.equipmentCount,
     ductCount: summary.ductCount,
