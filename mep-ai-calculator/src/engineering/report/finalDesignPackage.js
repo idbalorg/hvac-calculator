@@ -2,6 +2,7 @@ import { buildDesignReport } from "./designReport.js";
 import { buildStandardsTraceability } from "../standards/standardsTraceability.js";
 import { buildResultTraceability } from "./resultTraceability.js";
 import { buildEngineeringReview } from "../review/engineeringReview.js";
+import { buildEngineeringDecision } from "../review/engineeringDecision.js";
 
 const n = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
@@ -94,17 +95,22 @@ export const buildFinalDesignPackage = ({
     criteria,
   });
 
+  const engineeringDecision = buildEngineeringDecision({ engineeringReview });
+
   return {
-    packageVersion: "20.0.0",
+    packageVersion: "21.0.0",
     generatedAt,
     report,
     standardsTraceability,
     resultTraceability,
     engineeringReview,
+    engineeringDecision,
     readiness: {
       reportGenerated: true,
       validationPassed: report.validation.passed,
       engineeringReviewPassed: engineeringReview.status === "PASS",
+      engineeringDecisionStatus: engineeringDecision.status,
+      readinessScore: engineeringDecision.readinessScore,
       verificationRequired: true,
       constructionReady: false,
     },
@@ -118,6 +124,9 @@ export const summarizeFinalDesignPackage = (designPackage) => {
     packageVersion: designPackage.packageVersion,
     validationPassed: validation.passed,
     engineeringReviewStatus: designPackage.engineeringReview?.status || "REVIEW_REQUIRED",
+    engineeringDecisionStatus: designPackage.engineeringDecision?.status || "REVIEW_REQUIRED",
+    readinessScore: designPackage.engineeringDecision?.readinessScore ?? 0,
+    exceptionCount: designPackage.engineeringDecision?.summary?.exceptionCount ?? 0,
     roomCount: summary.roomCount,
     equipmentCount: summary.equipmentCount,
     ductCount: summary.ductCount,
