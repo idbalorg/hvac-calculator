@@ -1,6 +1,7 @@
 import { buildDesignReport } from "./designReport.js";
 import { buildStandardsTraceability } from "../standards/standardsTraceability.js";
 import { buildResultTraceability } from "./resultTraceability.js";
+import { buildEngineeringReview } from "../review/engineeringReview.js";
 
 const n = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
@@ -50,46 +51,60 @@ export const buildFinalDesignPackage = ({
     );
   });
 
+  const normalizedEquipment = equipment || [];
+  const normalizedDucts = ducts || [];
+  const reportCriteria = {
+    minimumCapacityMarginPercent: 0,
+    maximumCapacityOversizePercent: null,
+    minimumAirflowRatio: 1,
+    minimumEspRatio: 1,
+    ...criteria,
+  };
+
   const report = buildDesignReport({
     project,
     rooms: normalizedRooms,
-    equipment,
-    ducts,
+    equipment: normalizedEquipment,
+    ducts: normalizedDucts,
     systemSummary,
-    criteria: {
-      minimumCapacityMarginPercent: 0,
-      maximumCapacityOversizePercent: null,
-      minimumAirflowRatio: 1,
-      minimumEspRatio: 1,
-      ...criteria,
-    },
+    criteria: reportCriteria,
     generatedAt,
   });
 
   const standardsTraceability = buildStandardsTraceability({
     rooms: normalizedRooms,
-    equipment: equipment || [],
-    ducts: ducts || [],
+    equipment: normalizedEquipment,
+    ducts: normalizedDucts,
     projectCriteria: criteria,
     systemSummary,
   });
 
   const resultTraceability = buildResultTraceability({
     rooms: normalizedRooms,
-    equipment: equipment || [],
-    ducts: ducts || [],
+    equipment: normalizedEquipment,
+    ducts: normalizedDucts,
     systemSummary,
   });
 
+  const engineeringReview = buildEngineeringReview({
+    rooms: normalizedRooms,
+    equipment: normalizedEquipment,
+    ducts: normalizedDucts,
+    systemSummary,
+    criteria,
+  });
+
   return {
-    packageVersion: "19.0.0",
+    packageVersion: "20.0.0",
     generatedAt,
     report,
     standardsTraceability,
     resultTraceability,
+    engineeringReview,
     readiness: {
       reportGenerated: true,
       validationPassed: report.validation.passed,
+      engineeringReviewPassed: engineeringReview.status === "PASS",
       verificationRequired: true,
       constructionReady: false,
     },
@@ -102,6 +117,7 @@ export const summarizeFinalDesignPackage = (designPackage) => {
   return {
     packageVersion: designPackage.packageVersion,
     validationPassed: validation.passed,
+    engineeringReviewStatus: designPackage.engineeringReview?.status || "REVIEW_REQUIRED",
     roomCount: summary.roomCount,
     equipmentCount: summary.equipmentCount,
     ductCount: summary.ductCount,
