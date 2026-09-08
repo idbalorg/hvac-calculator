@@ -88,15 +88,21 @@ export const buildResultTraceability = ({
   });
 
   ducts.forEach((duct, index) => {
+    const widthM = duct.widthM ?? (finite(duct.widthMm) ? Number(duct.widthMm) / 1000 : null);
+    const heightM = duct.heightM ?? (finite(duct.heightMm) ? Number(duct.heightMm) / 1000 : null);
+    const diameterM = duct.diameterM ?? (finite(duct.diameterMm) ? Number(duct.diameterMm) / 1000 : null);
+    const dimensions = diameterM !== null
+      ? `Ø${(diameterM * 1000).toFixed(0)} mm`
+      : `${widthM !== null ? (widthM * 1000).toFixed(0) : "?"} × ${heightM !== null ? (heightM * 1000).toFixed(0) : "?"} mm`;
     records.push({
-      id: `${RESULT_BASIS.DUCT.id}-${duct.id ?? index + 1}`,
+      id: `${RESULT_BASIS.DUCT.id}-${duct.id ?? duct.ductId ?? index + 1}`,
       roomId: duct.roomId,
       roomName: duct.roomName,
       result: "Duct section",
-      value: `${duct.widthMm ?? "?"} × ${duct.heightMm ?? "?"} mm | ${format(duct.airflowCfm, "CFM")}`,
+      value: `${dimensions} | ${format(duct.airflowCfm, "CFM")}`,
       inputBasis: "Design airflow plus project duct velocity/friction criteria",
       ...RESULT_BASIS.DUCT,
-      status: finite(duct.widthMm) && finite(duct.heightMm) ? "CALCULATED_VERIFY" : "REVIEW_REQUIRED",
+      status: (diameterM !== null || (finite(widthM) && finite(heightM))) ? "CALCULATED_VERIFY" : "REVIEW_REQUIRED",
     });
   });
 
