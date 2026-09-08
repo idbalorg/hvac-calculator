@@ -9,6 +9,10 @@ const HELP = {
     meaning: "Descriptive name of the conditioned space used in schedules and reports.",
     source: "Architectural room schedule and approved floor plans."
   },
+  Room: {
+    meaning: "Select the conditioned room for which the current engineering calculation is being performed.",
+    source: "Project room schedule and coordinated architectural/MEP model."
+  },
   Length: {
     meaning: "Internal room length used to calculate floor area and volume for the cooling-load model.",
     source: "Architectural drawings or coordinated BIM model."
@@ -33,6 +37,30 @@ const HELP = {
     meaning: "Fenestration area exposed to the conditioned space. It is used for transmission and solar heat-gain calculations.",
     source: "Architectural window schedule and elevations; ASHRAE Handbook—Fundamentals, Chapter 15 Fenestration."
   },
+  "Wall U-value": {
+    meaning: "Overall thermal transmittance of the wall construction. Lower U-values indicate greater thermal resistance.",
+    source: "Architectural wall build-up/specification, material properties and approved envelope schedule; ASHRAE Handbook—Fundamentals."
+  },
+  "Wall CLTD": {
+    meaning: "Cooling Load Temperature Difference used by this CLTD-based load model for the wall heat-transfer component.",
+    source: "Approved CLTD design method/table basis and project design conditions; verify applicability against the ASHRAE Handbook—Fundamentals load-calculation method used by the project."
+  },
+  "Roof U-value": {
+    meaning: "Overall thermal transmittance of the roof construction used for conductive heat-gain calculation.",
+    source: "Architectural roof build-up/specification and envelope schedule; ASHRAE Handbook—Fundamentals."
+  },
+  "Roof CLTD": {
+    meaning: "Cooling Load Temperature Difference used by the load model for roof heat transfer.",
+    source: "Approved CLTD design method/table basis and project design conditions; verify applicability against the ASHRAE Handbook—Fundamentals method used."
+  },
+  "Window U-value": {
+    meaning: "Overall thermal transmittance of the glazing/window assembly used for conductive heat gain.",
+    source: "Window manufacturer data sheet or approved window schedule; ASHRAE Handbook—Fundamentals, Chapter 15 Fenestration."
+  },
+  "Window CLTD": {
+    meaning: "Cooling Load Temperature Difference used by the load model for the conductive window component.",
+    source: "Approved CLTD design method/table basis and project design conditions; verify applicability against the ASHRAE Handbook—Fundamentals method used."
+  },
   "Outdoor design condition": {
     meaning: "Location-specific outdoor weather condition used as the cooling design basis.",
     source: "ASHRAE Handbook—Fundamentals, Chapter 14 Climatic Design Information, or the approved local weather/design standard."
@@ -53,9 +81,49 @@ const HELP = {
     meaning: "Outdoor relative humidity used to define the outdoor psychrometric state. Prefer a coincident weather value associated with the selected design condition rather than an arbitrary assumption.",
     source: "ASHRAE Handbook—Fundamentals, Chapter 14 climatic data and Chapter 1 psychrometrics."
   },
+  "Supply-air dry bulb": {
+    meaning: "Target dry-bulb temperature of air delivered to the conditioned space after the cooling coil. This is a project design input, not a universal fixed ASHRAE value.",
+    source: "Psychrometric/system design calculations and project design criteria; verify against equipment capability and room comfort requirements."
+  },
+  "Coil leaving-air RH": {
+    meaning: "Relative humidity assigned to the cooling-coil leaving/supply-air state for the psychrometric calculation. Treat it as an explicit design assumption until verified by coil selection.",
+    source: "Psychrometric design basis and selected coil/manufacturer performance data."
+  },
+  "Outdoor airflow": {
+    meaning: "Outdoor ventilation airflow introduced into the airside calculation. It affects mixed-air condition and coil load.",
+    source: "ASHRAE Standard 62.1 for applicable commercial spaces, project ventilation schedule and local code."
+  },
+  "Additional DX margin": {
+    meaning: "Additional system-level allowance applied during DX equipment sizing. Avoid duplicating the main room design margin unless deliberately required.",
+    source: "Project design criteria and engineer judgement; ASHRAE Handbook—Fundamentals, Chapter 18 cautions against compounding safety factors."
+  },
   "Design margin": {
     meaning: "Additional design allowance applied after the calculated load. It should represent an explicit project engineering criterion, not a substitute for accurate inputs.",
     source: "Project design criteria and engineer judgement. ASHRAE Handbook—Fundamentals, Chapter 18 cautions against compounding safety factors."
+  },
+  "Maximum oversize": {
+    meaning: "Maximum permitted equipment capacity above the required design capacity. This is a project selection criterion, not a universal ASHRAE requirement.",
+    source: "Project equipment-selection criteria and engineer judgement; verify manufacturer/system operating requirements."
+  },
+  "Required ESP": {
+    meaning: "External static pressure that the selected indoor unit/fan must be capable of overcoming for the connected duct system and terminals.",
+    source: "Duct-system pressure-loss calculation, terminal/filter/grille pressure drops and manufacturer fan performance data; SMACNA duct design guidance where applicable."
+  },
+  "Indoor capacity": {
+    meaning: "Cooling capacity of the proposed indoor unit at the applicable rating condition.",
+    source: "Certified manufacturer technical data sheet/catalogue. Do not estimate equipment capacity from nominal HP alone."
+  },
+  "Indoor airflow": {
+    meaning: "Rated or manufacturer-specified indoor-unit airflow available at the applicable operating condition.",
+    source: "Certified manufacturer technical data sheet/fan performance table."
+  },
+  "Indoor available ESP": {
+    meaning: "External static pressure available from the indoor unit fan for external duct-system resistance.",
+    source: "Manufacturer fan performance data at the selected airflow and operating condition."
+  },
+  "Outdoor capacity": {
+    meaning: "Cooling capacity of the proposed outdoor condensing unit at the applicable rating condition and indoor/outdoor combination.",
+    source: "Certified manufacturer technical data and approved indoor/outdoor combination."
   },
   "Zoning priority": {
     meaning: "Project preference used by the system-decision logic when comparing HVAC arrangements. It is not an ASHRAE-prescribed numerical input.",
@@ -76,6 +144,62 @@ const HELP = {
   "Central plant available": {
     meaning: "Indicates whether chilled-water or another central plant solution is available for the project.",
     source: "Project MEP brief, plant-room drawings and mechanical equipment schedule."
+  },
+  "Duct velocity": {
+    meaning: "Design air velocity used to size a duct section. Higher velocity can reduce duct size but generally increases pressure loss and noise risk.",
+    source: "ASHRAE Handbook—Fundamentals, Chapter 21 Duct Design, together with SMACNA duct-design guidance and project acoustic criteria."
+  },
+  "Friction rate": {
+    meaning: "Target duct friction-loss rate used in the duct-sizing method. It is a design criterion and should be coordinated with fan static pressure and noise requirements.",
+    source: "ASHRAE Handbook—Fundamentals, Chapter 21 Duct Design and SMACNA duct-design guidance."
+  },
+  "Supply airflow": {
+    meaning: "Design airflow required to deliver the calculated room cooling duty at the selected supply-air condition.",
+    source: "Stage 13 psychrometric/airside calculation, based on room sensible load and supply-air condition."
+  },
+  "Branch airflow": {
+    meaning: "Airflow assigned to an individual duct branch serving a room or terminal.",
+    source: "Room-by-room airside schedule and coordinated duct layout; derived from the required supply airflow."
+  },
+  "Main duct velocity": {
+    meaning: "Design velocity criterion for main duct sections carrying combined airflow from multiple branches.",
+    source: "ASHRAE Handbook—Fundamentals, Chapter 21 and SMACNA duct-design guidance, coordinated with project noise and pressure-loss criteria."
+  },
+  "Branch duct velocity": {
+    meaning: "Design velocity criterion for branch ducts serving individual rooms or terminals.",
+    source: "ASHRAE Handbook—Fundamentals, Chapter 21 and SMACNA duct-design guidance."
+  },
+  "Equipment airflow": {
+    meaning: "Manufacturer-rated airflow of the selected HVAC indoor unit or air-handling equipment. It should be compared with the calculated design supply airflow.",
+    source: "Certified manufacturer technical data and fan performance tables."
+  },
+  "Refrigerant": {
+    meaning: "Refrigerant designation associated with the selected refrigeration equipment and circuit.",
+    source: "Manufacturer technical data and applicable refrigerant safety requirements, including ASHRAE Standard 15 where applicable."
+  },
+  "Refrigerant type": {
+    meaning: "Refrigerant designation required to confirm compatibility, safety classification and installation requirements.",
+    source: "Manufacturer technical data and applicable refrigerant safety requirements, including ASHRAE Standard 15 where applicable."
+  },
+  "Pipe size": {
+    meaning: "Refrigerant or hydronic pipe size selected for the system based on flow, pressure loss, velocity and manufacturer limits.",
+    source: "Manufacturer installation/design data plus applicable ASHRAE Handbook piping guidance and project standards."
+  },
+  "Pipe length": {
+    meaning: "Installed pipe length used to assess pressure loss, refrigerant charge and manufacturer allowable piping limits.",
+    source: "Coordinated MEP drawings/site measurement and manufacturer installation limits."
+  },
+  "Fan ESP": {
+    meaning: "External static pressure measured or required across the fan-connected air distribution system.",
+    source: "Duct-system pressure-loss calculation and manufacturer fan performance data; field verification during testing and commissioning."
+  },
+  "Measured airflow": {
+    meaning: "Field-measured airflow at the terminal or branch during testing and balancing.",
+    source: "TAB field measurements using calibrated instruments and the approved air-balancing procedure."
+  },
+  "Measured ESP": {
+    meaning: "Field-measured external static pressure used to verify fan/system operating conditions.",
+    source: "TAB/commissioning measurements using calibrated pressure instruments and manufacturer test points."
   }
 };
 
