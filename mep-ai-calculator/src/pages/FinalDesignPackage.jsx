@@ -12,128 +12,138 @@ export default function FinalDesignPackage() {
   const [capacityMargin, setCapacityMargin] = useState("0");
   const [airflowRatio, setAirflowRatio] = useState("1");
   const [espRatio, setEspRatio] = useState("1");
+  const [approver, setApprover] = useState("");
+  const [approvalReason, setApprovalReason] = useState("");
+  const [approvalEvidence, setApprovalEvidence] = useState("");
+  const [overrideExceptionId, setOverrideExceptionId] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [overrideEvidence, setOverrideEvidence] = useState("");
+  const [overrides, setOverrides] = useState([]);
 
-  const buildPackage = () => {
+  const generate = (approval = null) => {
     setError("");
+    if (!saved?.rooms?.length) throw new Error("Create and save a project with at least one room first.");
+    const loadResults = saved.result?.loads?.roomResults || [];
+    const airsideResults = saved.result?.airside?.roomResults || [];
+    if (!loadResults.length) throw new Error("Run the main calculator first so room cooling loads are available.");
+    if (!airsideResults.length) throw new Error("Run Stage 13 Psychrometrics & Airside for the project first.");
+
+    const dx = saved.result?.dxSystem;
+    const airDistribution = saved.result?.airDistribution;
+    const airBalance = saved.result?.airBalanceSystem;
+    const commissioning = saved.result?.commissioning;
+    const systemSummary = airBalance?.systemSummary || null;
+    const distributionType = airDistribution?.integrated?.distributionType || airDistribution?.distributionType || systemSummary?.distributionType || "";
+    const equipment = dx?.selection?.selected ? [{
+      equipmentId: dx.selection.selected.indoorUnit.id || `${dx.roomId || "ROOM"}-INDOOR`,
+      systemId: systemSummary?.systemId || "SYSTEM-01",
+      type: dx.selection.selected.indoorUnit.type || "SPLIT_DX",
+      manufacturer: dx.selection.selected.indoorUnit.manufacturer,
+      model: dx.selection.selected.indoorUnit.model,
+      refrigerant: dx.selection.selected.indoorUnit.refrigerant,
+      capacityKw: n(dx.coverage?.selectedCapacityKW, dx.selection.selected.indoorUnit.coolingCapacityKw),
+      requiredCapacityKw: n(dx.capacityBasis?.sizing?.requiredCapacityKW),
+      designAirflowCfm: n(dx.requiredAirflowCfm),
+      selectedAirflowCfm: n(dx.selection.selected.indoorUnit.airflowCfm),
+      requiredEspPa: n(airDistribution?.integrated?.esp?.requiredFanESP_Pa, 0),
+      selectedEspPa: n(dx.selection.selected.indoorUnit.availableEspPa, 0),
+    }] : [];
+    const branches = airDistribution?.integrated?.distribution?.branches || [];
+    const ducts = branches.flatMap((branch) => (branch.segments || []).map((segment, index) => ({
+      ductId: `${branch.id || "B"}-${index + 1}`,
+      systemId: systemSummary?.systemId || "SYSTEM-01",
+      sectionType: "BRANCH",
+      airflowCfm: n(segment.volumeFlowM3s) * 2118.88,
+      widthM: n(segment.widthM, airDistribution?.inputs?.ductWidthM),
+      heightM: n(segment.heightM),
+      velocityMps: n(segment.velocityMps, segment.velocityMps || airDistribution?.inputs?.targetVelocityMps),
+      pressureLossPa: n(segment.pressureLossPa),
+    })));
+
+    const generated = buildFinalDesignPackage({
+      project: saved,
+      rooms: saved.rooms,
+      loadResults,
+      airsideResults,
+      equipment,
+      ducts,
+      systemSummary,
+      approval,
+      criteria: {
+        minimumCapacityMarginPercent: n(capacityMargin),
+        maximumCapacityOversizePercent: oversize === "" ? null : n(oversize),
+        minimumAirflowRatio: n(airflowRatio, 1),
+        minimumEspRatio: n(espRatio, 1),
+        distributionType,
+        ventilationRequired: saved.result?.loads?.ventilationRequired === true,
+        designConditionVerified: saved.result?.designConditions?.verified === true || saved.result?.designConditions?.verificationStatus === "VERIFIED",
+        operatingConditionConfirmed: saved.result?.dxSystem?.operatingConditionConfirmed === true || saved.result?.equipmentSelection?.operatingConditionConfirmed === true,
+        acousticCriteriaRequired: saved.result?.projectCriteria?.acousticCriteriaRequired === true,
+        acousticCriteriaVerified: saved.result?.projectCriteria?.acousticCriteriaVerified === true,
+        refrigerantPipingVerified: saved.result?.commissioning?.refrigerantPipingVerified === true || saved.result?.airBalanceSystem?.refrigerantPipingVerified === true,
+        commissioningRequired: Boolean(commissioning),
+        measuredDataAvailable: Boolean(saved.result?.airBalanceSystem?.measuredData),
+      },
+      generatedAt: new Date().toISOString(),
+    });
+
+    const payload = { ...generated, sourceStages: { loads: true, airside: true, dxSystem: Boolean(dx), airDistribution: Boolean(airDistribution), airBalance: Boolean(airBalance), commissioning: Boolean(commissioning) } };
+    const projects = JSON.parse(localStorage.getItem("hvac-projects") || "[]");
+    if (projects.length) { const current = projects.at(-1); current.result = { ...current.result, finalDesignPackage: payload }; localStorage.setItem("hvac-projects", JSON.stringify(projects)); }
+    setPackageResult(payload);
+    return payload;
+  };
+
+  const buildPackage = () => { try { generate(null); } catch (e) { setPackageResult(null); setError(e.message || "Unable to build the final design package."); } };
+
+  const addOverride = () => {
+    if (!overrideExceptionId || !overrideReason.trim() || !overrideEvidence.trim()) { setError("An exception, override reason and evidence/reference are required."); return; }
+    if (overrides.some((item) => item.exceptionId === overrideExceptionId)) { setError("That exception already has an override."); return; }
+    setError("");
+    setOverrides((items) => [...items, { exceptionId: overrideExceptionId, approver: approver.trim(), reason: overrideReason.trim(), evidenceReference: overrideEvidence.trim(), timestamp: new Date().toISOString() }]);
+    setOverrideExceptionId(""); setOverrideReason(""); setOverrideEvidence("");
+  };
+
+  const recordApproval = () => {
+    setError("");
+    if (!approver.trim() || !approvalReason.trim() || !approvalEvidence.trim()) { setError("Approver, approval reason and approval evidence/reference are required."); return; }
     try {
-      if (!saved?.rooms?.length) throw new Error("Create and save a project with at least one room first.");
-      const loadResults = saved.result?.loads?.roomResults || [];
-      const airsideResults = saved.result?.airside?.roomResults || [];
-      if (!loadResults.length) throw new Error("Run the main calculator first so room cooling loads are available.");
-      if (!airsideResults.length) throw new Error("Run Stage 13 Psychrometrics & Airside for the project first.");
-
-      const dx = saved.result?.dxSystem;
-      const airDistribution = saved.result?.airDistribution;
-      const airBalance = saved.result?.airBalanceSystem;
-      const commissioning = saved.result?.commissioning;
-      const systemSummary = airBalance?.systemSummary || null;
-      const distributionType = airDistribution?.integrated?.distributionType || airDistribution?.distributionType || systemSummary?.distributionType || "";
-
-      const equipment = dx?.selection?.selected ? [{
-        equipmentId: dx.selection.selected.indoorUnit.id || `${dx.roomId || "ROOM"}-INDOOR`,
-        systemId: systemSummary?.systemId || "SYSTEM-01",
-        type: dx.selection.selected.indoorUnit.type || "SPLIT_DX",
-        manufacturer: dx.selection.selected.indoorUnit.manufacturer,
-        model: dx.selection.selected.indoorUnit.model,
-        refrigerant: dx.selection.selected.indoorUnit.refrigerant,
-        capacityKw: n(dx.coverage?.selectedCapacityKW, dx.selection.selected.indoorUnit.coolingCapacityKw),
-        requiredCapacityKw: n(dx.capacityBasis?.sizing?.requiredCapacityKW),
-        designAirflowCfm: n(dx.requiredAirflowCfm),
-        selectedAirflowCfm: n(dx.selection.selected.indoorUnit.airflowCfm),
-        requiredEspPa: n(airDistribution?.integrated?.esp?.requiredFanESP_Pa, 0),
-        selectedEspPa: n(dx.selection.selected.indoorUnit.availableEspPa, 0),
-      }] : [];
-
-      const branches = airDistribution?.integrated?.distribution?.branches || [];
-      const ducts = branches.flatMap((branch) => (branch.segments || []).map((segment, index) => ({
-        ductId: `${branch.id || "B"}-${index + 1}`,
-        systemId: systemSummary?.systemId || "SYSTEM-01",
-        sectionType: "BRANCH",
-        airflowCfm: n(segment.volumeFlowM3s) * 2118.88,
-        widthM: n(segment.widthM, airDistribution?.inputs?.ductWidthM),
-        heightM: n(segment.heightM),
-        velocityMps: n(segment.velocityMps, segment.velocityMps || airDistribution?.inputs?.targetVelocityMps),
-        pressureLossPa: n(segment.pressureLossPa),
-      })));
-
-      const generated = buildFinalDesignPackage({
-        project: saved,
-        rooms: saved.rooms,
-        loadResults,
-        airsideResults,
-        equipment,
-        ducts,
-        systemSummary,
-        criteria: {
-          minimumCapacityMarginPercent: n(capacityMargin),
-          maximumCapacityOversizePercent: oversize === "" ? null : n(oversize),
-          minimumAirflowRatio: n(airflowRatio, 1),
-          minimumEspRatio: n(espRatio, 1),
-          distributionType,
-          ventilationRequired: saved.result?.loads?.ventilationRequired === true,
-          designConditionVerified: saved.result?.designConditions?.verified === true || saved.result?.designConditions?.verificationStatus === "VERIFIED",
-          operatingConditionConfirmed: saved.result?.dxSystem?.operatingConditionConfirmed === true || saved.result?.equipmentSelection?.operatingConditionConfirmed === true,
-          acousticCriteriaRequired: saved.result?.projectCriteria?.acousticCriteriaRequired === true,
-          acousticCriteriaVerified: saved.result?.projectCriteria?.acousticCriteriaVerified === true,
-          refrigerantPipingVerified: saved.result?.commissioning?.refrigerantPipingVerified === true || saved.result?.airBalanceSystem?.refrigerantPipingVerified === true,
-          commissioningRequired: Boolean(commissioning),
-          measuredDataAvailable: Boolean(saved.result?.airBalanceSystem?.measuredData),
-        },
-        generatedAt: new Date().toISOString(),
-      });
-
-      const payload = { ...generated, sourceStages: { loads: true, airside: true, dxSystem: Boolean(dx), airDistribution: Boolean(airDistribution), airBalance: Boolean(airBalance), commissioning: Boolean(commissioning) } };
-      const projects = JSON.parse(localStorage.getItem("hvac-projects") || "[]");
-      if (projects.length) { const current = projects.at(-1); current.result = { ...current.result, finalDesignPackage: payload }; localStorage.setItem("hvac-projects", JSON.stringify(projects)); }
-      setPackageResult(payload);
-    } catch (e) { setPackageResult(null); setError(e.message || "Unable to build the final design package."); }
+      generate({ status: "APPROVED", approver: approver.trim(), reason: approvalReason.trim(), evidenceReference: approvalEvidence.trim(), timestamp: new Date().toISOString(), overrides });
+    } catch (e) { setError(e.message || "Unable to record engineering approval."); }
   };
 
-  const exportJson = () => {
-    if (!packageResult) return;
-    const blob = new Blob([JSON.stringify(packageResult, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `${saved?.name || "hvac-project"}-final-design-package.json`; anchor.click(); URL.revokeObjectURL(url);
-  };
-
+  const exportJson = () => { if (!packageResult) return; const blob = new Blob([JSON.stringify(packageResult, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `${saved?.name || "hvac-project"}-final-design-package.json`; anchor.click(); URL.revokeObjectURL(url); };
   const summary = packageResult ? summarizeFinalDesignPackage(packageResult) : null;
   const review = packageResult?.engineeringReview;
   const decision = packageResult?.engineeringDecision;
+  const approval = packageResult?.engineeringApproval;
   const reviewRows = review ? [
     ...review.roomChecks.flatMap((r) => [[r.roomId, "Cooling load", r.coolingLoad], [r.roomId, "Supply airflow", r.supplyAirflow], [r.roomId, "Ventilation", r.ventilation]]),
     ...review.equipmentChecks.flatMap((e) => [[e.equipmentId, "Capacity", e.capacity], [e.equipmentId, "Airflow", e.airflow], [e.equipmentId, "ESP", e.esp], [e.equipmentId, "Manufacturer data", e.manufacturerData]]),
     ...Object.entries(review.projectChecks).map(([key, check]) => ["Project", key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()), check]),
   ] : [];
+  const unresolved = approval?.unresolvedExceptions || decision?.exceptions || [];
 
   return <div className="container final-design-package">
-    <div className="page-header"><div><p className="eyebrow">ENGINEERING WORKFLOW · STAGE 22</p><h1 className="title">Final Design Package</h1><p className="subtitle">Structured engineering schedules, standards basis, traceability, design review and exception management.</p></div><span className="version-badge">Package 21.0</span></div>
-
-    <div className="card package-controls no-print">
-      <div className="section-heading"><h3>Package Criteria</h3><span>01</span></div>
-      {!saved && <p className="form-note">Create and save a project first.</p>}
-      <div className="input-grid"><Input label="Minimum capacity margin" value={capacityMargin} onChange={setCapacityMargin} placeholder="%" /><Input label="Maximum capacity oversize" value={oversize} onChange={setOversize} placeholder="%" /><Input label="Minimum airflow ratio" value={airflowRatio} onChange={setAirflowRatio} /><Input label="Minimum ESP ratio" value={espRatio} onChange={setEspRatio} /></div>
-      {error && <p className="error-message">{error}</p>}
-      <div className="button-row"><button onClick={buildPackage} disabled={!saved}>Generate Final Design Package</button>{packageResult && <button className="secondary-button" onClick={exportJson}>Export JSON</button>}{packageResult && <button className="secondary-button" onClick={() => window.print()}>Print / Save PDF</button>}</div>
-      <p className="form-note">The package uses saved outputs from the preceding workflow stages. Missing engineering evidence is flagged for review rather than silently invented.</p>
-    </div>
+    <div className="page-header"><div><p className="eyebrow">ENGINEERING WORKFLOW · STAGE 23</p><h1 className="title">Final Design Package</h1><p className="subtitle">Structured engineering schedules, standards basis, traceability, design review, exception management and explicit approval.</p></div><span className="version-badge">Package 22.0</span></div>
+    <div className="card package-controls no-print"><div className="section-heading"><h3>Package Criteria</h3><span>01</span></div>{!saved && <p className="form-note">Create and save a project first.</p>}<div className="input-grid"><Input label="Minimum capacity margin" value={capacityMargin} onChange={setCapacityMargin} placeholder="%" /><Input label="Maximum capacity oversize" value={oversize} onChange={setOversize} placeholder="%" /><Input label="Minimum airflow ratio" value={airflowRatio} onChange={setAirflowRatio} /><Input label="Minimum ESP ratio" value={espRatio} onChange={setEspRatio} /></div>{error && <p className="error-message">{error}</p>}<div className="button-row"><button onClick={buildPackage} disabled={!saved}>Generate Final Design Package</button>{packageResult && <button className="secondary-button" onClick={exportJson}>Export JSON</button>}{packageResult && <button className="secondary-button" onClick={() => window.print()}>Print / Save PDF</button>}</div><p className="form-note">Generation never auto-approves the package. Missing engineering evidence remains visible for review.</p></div>
 
     {packageResult && <>
-      <div className="card print-section"><div className="section-heading"><h3>Package Summary</h3><span>01</span></div><div className="stat-grid"><Stat label="Validation" value={summary.validationPassed ? "PASS" : "FAIL"} /><Stat label="Engineering review" value={summary.engineeringReviewStatus} /><Stat label="Decision" value={summary.engineeringDecisionStatus} /><Stat label="Readiness" value={`${n(summary.readinessScore).toFixed(0)}/100`} /><Stat label="Exceptions" value={String(summary.exceptionCount)} /><Stat label="Rooms" value={String(summary.roomCount)} /><Stat label="Equipment" value={String(summary.equipmentCount)} /><Stat label="Cooling load" value={`${n(summary.totalCoolingLoadKw).toFixed(2)} kW`} /><Stat label="Supply airflow" value={`${n(summary.totalSupplyAirflowCfm).toFixed(0)} CFM`} /><Stat label="Installed capacity" value={`${n(summary.totalInstalledCapacityKw).toFixed(2)} kW`} /></div></div>
-
-      <div className="card print-section"><div className="section-heading"><h3>Engineering Standards & Traceability</h3><span>02</span></div><p className="form-note">Basis recorded as: <b>{packageResult.standardsTraceability.methodology}</b></p><div className="table-wrap"><table><thead><tr><th>ID</th><th>Engineering input</th><th>Method</th><th>Standard / reference</th><th>Verification</th></tr></thead><tbody>{packageResult.standardsTraceability.traceability.map((row) => <tr key={row.id}><td>{row.id}</td><td>{row.input}</td><td>{row.method}</td><td>{row.reference}</td><td>{row.verification}</td></tr>)}</tbody></table></div><p className="engineering-note"><b>Traceability boundary:</b> {packageResult.standardsTraceability.disclaimer}</p></div>
-
-      <ScheduleTable title="Room Schedule" number="03" columns={["Room", "Area", "Sensible", "Latent", "Total", "SHR", "Supply Air"]} rows={packageResult.report.schedules.rooms.map((r) => [r.roomId, `${n(r.areaM2).toFixed(1)} m²`, `${n(r.sensibleLoadKw).toFixed(2)} kW`, `${n(r.latentLoadKw).toFixed(2)} kW`, `${n(r.totalLoadKw).toFixed(2)} kW`, n(r.sensibleHeatRatio).toFixed(2), `${n(r.supplyAirflowCfm).toFixed(0)} CFM`])} />
-      <ScheduleTable title="Equipment Schedule" number="04" columns={["Equipment", "System", "Type", "Capacity", "Airflow", "ESP"]} rows={packageResult.report.schedules.equipment.map((e) => [e.equipmentId, e.systemId, e.type, `${n(e.capacityKw).toFixed(2)} kW`, `${n(e.selectedAirflowCfm).toFixed(0)} CFM`, `${n(e.selectedEspPa).toFixed(0)} Pa`])} />
-      <ScheduleTable title="Duct Schedule" number="05" columns={["Duct", "System", "Type", "Airflow", "Size", "Velocity", "Loss"]} rows={packageResult.report.schedules.ducts.map((d) => [d.ductId, d.systemId, d.sectionType, `${n(d.airflowCfm).toFixed(0)} CFM`, `${n(d.widthM).toFixed(2)} × ${n(d.heightM).toFixed(2)} m`, `${n(d.velocityMps).toFixed(1)} m/s`, `${n(d.pressureLossPa).toFixed(1)} Pa`])} />
-
-      <div className="card print-section"><div className="section-heading"><h3>Engineering Review & Design Checks</h3><span>06</span></div><div className="stat-grid"><Stat label="Review status" value={review.status} /><Stat label="Checks" value={String(review.summary.totalChecks)} /><Stat label="Passed" value={String(review.summary.passed)} /><Stat label="Review required" value={String(review.summary.reviewRequired)} /><Stat label="Failed" value={String(review.summary.failed)} /></div><div className="table-wrap"><table><thead><tr><th>Scope</th><th>Check</th><th>Status</th><th>Engineering finding</th></tr></thead><tbody>{reviewRows.map(([scope, check, result], index) => <tr key={`${scope}-${check}-${index}`}><td>{scope}</td><td>{check}</td><td><b>{result.status}</b></td><td>{result.message}</td></tr>)}</tbody></table></div><p className="engineering-note"><b>Review boundary:</b> {review.boundary}</p></div>
-
-      <div className="card print-section"><div className="section-heading"><h3>Engineering Exceptions & Decision</h3><span>07</span></div><div className="stat-grid"><Stat label="Decision" value={decision.status} /><Stat label="Readiness score" value={`${n(decision.readinessScore).toFixed(0)}/100`} /><Stat label="Critical" value={String(decision.summary.criticalCount)} /><Stat label="High" value={String(decision.summary.highCount)} /><Stat label="Medium" value={String(decision.summary.mediumCount)} /><Stat label="Low" value={String(decision.summary.lowCount)} /></div>{decision.exceptions.length ? <div className="table-wrap"><table><thead><tr><th>ID</th><th>Severity</th><th>Scope</th><th>Check</th><th>Finding</th><th>Recommended action</th></tr></thead><tbody>{decision.exceptions.map((item) => <tr key={item.id}><td>{item.id}</td><td><b>{item.severity}</b></td><td>{item.scope}</td><td>{item.check}</td><td>{item.message}</td><td>{item.recommendedAction}</td></tr>)}</tbody></table></div> : <p className="form-note">No unresolved engineering exceptions were identified by the programmed review.</p>}<p className="engineering-note"><b>Decision boundary:</b> {decision.boundary}</p></div>
-
-      <div className="card print-section"><div className="section-heading"><h3>Result-Level Engineering Traceability</h3><span>08</span></div><div className="table-wrap"><table><thead><tr><th>Result</th><th>Value</th><th>Method</th><th>Standard / reference</th><th>Status</th></tr></thead><tbody>{packageResult.resultTraceability.records.map((row, index) => <tr key={`${row.id}-${index}`}><td>{row.result}</td><td>{row.value}</td><td>{row.method}</td><td>{row.reference}</td><td>{row.status}</td></tr>)}</tbody></table></div></div>
+      <div className="card print-section"><div className="section-heading"><h3>Package Summary</h3><span>02</span></div><div className="stat-grid"><Stat label="Validation" value={summary.validationPassed ? "PASS" : "FAIL"} /><Stat label="Engineering review" value={summary.engineeringReviewStatus} /><Stat label="Decision" value={summary.engineeringDecisionStatus} /><Stat label="Approval" value={summary.engineeringApprovalStatus} /><Stat label="Readiness" value={`${n(summary.readinessScore).toFixed(0)}/100`} /><Stat label="Exceptions" value={String(summary.exceptionCount)} /><Stat label="Rooms" value={String(summary.roomCount)} /><Stat label="Equipment" value={String(summary.equipmentCount)} /><Stat label="Cooling load" value={`${n(summary.totalCoolingLoadKw).toFixed(2)} kW`} /><Stat label="Supply airflow" value={`${n(summary.totalSupplyAirflowCfm).toFixed(0)} CFM`} /><Stat label="Installed capacity" value={`${n(summary.totalInstalledCapacityKw).toFixed(2)} kW`} /></div></div>
+      <div className="card print-section"><div className="section-heading"><h3>Engineering Standards & Traceability</h3><span>03</span></div><p className="form-note">Basis recorded as: <b>{packageResult.standardsTraceability.methodology}</b></p><div className="table-wrap"><table><thead><tr><th>ID</th><th>Engineering input</th><th>Method</th><th>Standard / reference</th><th>Verification</th></tr></thead><tbody>{packageResult.standardsTraceability.traceability.map((row) => <tr key={row.id}><td>{row.id}</td><td>{row.input}</td><td>{row.method}</td><td>{row.reference}</td><td>{row.verification}</td></tr>)}</tbody></table></div><p className="engineering-note"><b>Traceability boundary:</b> {packageResult.standardsTraceability.disclaimer}</p></div>
+      <ScheduleTable title="Room Schedule" number="04" columns={["Room", "Area", "Sensible", "Latent", "Total", "SHR", "Supply Air"]} rows={packageResult.report.schedules.rooms.map((r) => [r.roomId, `${n(r.areaM2).toFixed(1)} m²`, `${n(r.sensibleLoadKw).toFixed(2)} kW`, `${n(r.latentLoadKw).toFixed(2)} kW`, `${n(r.totalLoadKw).toFixed(2)} kW`, n(r.sensibleHeatRatio).toFixed(2), `${n(r.supplyAirflowCfm).toFixed(0)} CFM`])} />
+      <ScheduleTable title="Equipment Schedule" number="05" columns={["Equipment", "System", "Type", "Capacity", "Airflow", "ESP"]} rows={packageResult.report.schedules.equipment.map((e) => [e.equipmentId, e.systemId, e.type, `${n(e.capacityKw).toFixed(2)} kW`, `${n(e.selectedAirflowCfm).toFixed(0)} CFM`, `${n(e.selectedEspPa).toFixed(0)} Pa`])} />
+      <ScheduleTable title="Duct Schedule" number="06" columns={["Duct", "System", "Type", "Airflow", "Size", "Velocity", "Loss"]} rows={packageResult.report.schedules.ducts.map((d) => [d.ductId, d.systemId, d.sectionType, `${n(d.airflowCfm).toFixed(0)} CFM`, `${n(d.widthM).toFixed(2)} × ${n(d.heightM).toFixed(2)} m`, `${n(d.velocityMps).toFixed(1)} m/s`, `${n(d.pressureLossPa).toFixed(1)} Pa`])} />
+      <div className="card print-section"><div className="section-heading"><h3>Engineering Review & Design Checks</h3><span>07</span></div><div className="stat-grid"><Stat label="Review status" value={review.status} /><Stat label="Checks" value={String(review.summary.totalChecks)} /><Stat label="Passed" value={String(review.summary.passed)} /><Stat label="Review required" value={String(review.summary.reviewRequired)} /><Stat label="Failed" value={String(review.summary.failed)} /></div><div className="table-wrap"><table><thead><tr><th>Scope</th><th>Check</th><th>Status</th><th>Engineering finding</th></tr></thead><tbody>{reviewRows.map(([scope, check, result], index) => <tr key={`${scope}-${check}-${index}`}><td>{scope}</td><td>{check}</td><td><b>{result.status}</b></td><td>{result.message}</td></tr>)}</tbody></table></div><p className="engineering-note"><b>Review boundary:</b> {review.boundary}</p></div>
+      <div className="card print-section"><div className="section-heading"><h3>Engineering Exceptions & Decision</h3><span>08</span></div><div className="stat-grid"><Stat label="Decision" value={decision.status} /><Stat label="Readiness score" value={`${n(decision.readinessScore).toFixed(0)}/100`} /><Stat label="Critical" value={String(decision.summary.criticalCount)} /><Stat label="High" value={String(decision.summary.highCount)} /><Stat label="Medium" value={String(decision.summary.mediumCount)} /><Stat label="Low" value={String(decision.summary.lowCount)} /></div>{decision.exceptions.length ? <div className="table-wrap"><table><thead><tr><th>ID</th><th>Severity</th><th>Scope</th><th>Check</th><th>Finding</th><th>Recommended action</th></tr></thead><tbody>{decision.exceptions.map((item) => <tr key={item.id}><td>{item.id}</td><td><b>{item.severity}</b></td><td>{item.scope}</td><td>{item.check}</td><td>{item.message}</td><td>{item.recommendedAction}</td></tr>)}</tbody></table></div> : <p className="form-note">No unresolved engineering exceptions were identified by the programmed review.</p>}<p className="engineering-note"><b>Decision boundary:</b> {decision.boundary}</p></div>
+      <div className="card print-section"><div className="section-heading"><h3>Engineering Approval Gate</h3><span>09</span></div><div className="stat-grid"><Stat label="Approval status" value={approval.status} /><Stat label="Can approve" value={approval.canApprove ? "YES" : "NO"} /><Stat label="Unresolved" value={String(approval.summary.unresolved)} /><Stat label="Critical unresolved" value={String(approval.summary.unresolvedCritical)} /></div><p className="engineering-note"><b>Gate:</b> Critical and other review exceptions must be resolved or explicitly overridden with reason and evidence before approval. Approval is never automatic.</p><div className="no-print"><div className="input-grid"><InputText label="Approving engineer" value={approver} onChange={setApprover} /><InputText label="Approval reason" value={approvalReason} onChange={setApprovalReason} /><InputText label="Approval evidence / reference" value={approvalEvidence} onChange={setApprovalEvidence} /></div>{unresolved.length > 0 && <><h4>Exception Override</h4><div className="input-grid"><SelectInput label="Exception to override" value={overrideExceptionId} onChange={setOverrideExceptionId} options={unresolved.map((item) => ({ value: item.id, label: `${item.id} · ${item.severity} · ${item.check}` }))} /><InputText label="Override reason" value={overrideReason} onChange={setOverrideReason} /><InputText label="Override evidence / reference" value={overrideEvidence} onChange={setOverrideEvidence} /></div><button className="secondary-button" onClick={addOverride}>Add Exception Override</button></>}{overrides.length > 0 && <div className="table-wrap"><table><thead><tr><th>Exception</th><th>Approver</th><th>Reason</th><th>Evidence</th></tr></thead><tbody>{overrides.map((item) => <tr key={item.exceptionId}><td>{item.exceptionId}</td><td>{item.approver || "Not entered"}</td><td>{item.reason}</td><td>{item.evidenceReference}</td></tr>)}</tbody></table></div>}<div className="button-row"><button onClick={recordApproval} disabled={!approval.canApprove && unresolved.length > 0 && overrides.length === 0}>Record Engineering Approval</button></div></div>{approval.approved && <p className="engineering-note"><b>Approved by:</b> {approval.approver} · <b>Evidence:</b> {approval.evidenceReference} · <b>Recorded:</b> {approval.timestamp}</p>}<p className="engineering-note"><b>Approval boundary:</b> {approval.boundary}</p></div>
+      <div className="card print-section"><div className="section-heading"><h3>Result-Level Engineering Traceability</h3><span>10</span></div><div className="table-wrap"><table><thead><tr><th>Result</th><th>Value</th><th>Method</th><th>Standard / reference</th><th>Status</th></tr></thead><tbody>{packageResult.resultTraceability.records.map((row, index) => <tr key={`${row.id}-${index}`}><td>{row.result}</td><td>{row.value}</td><td>{row.method}</td><td>{row.reference}</td><td>{row.status}</td></tr>)}</tbody></table></div></div>
     </>}
   </div>;
 }
 
 function Input({ label, value, onChange, placeholder }) { return <div><label>{label}</label><input type="number" min="0" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} /></div>; }
+function InputText({ label, value, onChange }) { return <div><label>{label}</label><input type="text" value={value} onChange={(e) => onChange(e.target.value)} /></div>; }
+function SelectInput({ label, value, onChange, options }) { return <div><label>{label}</label><select value={value} onChange={(e) => onChange(e.target.value)}><option value="">Select exception</option>{options.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>; }
 function Stat({ label, value }) { return <div className="stat"><span>{label}</span><b>{value}</b></div>; }
 function ScheduleTable({ title, number, columns, rows }) { return <div className="card print-section"><div className="section-heading"><h3>{title}</h3><span>{number}</span></div>{rows.length ? <div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div> : <p className="form-note">Not applicable for the selected system / distribution arrangement.</p>}</div>; }
