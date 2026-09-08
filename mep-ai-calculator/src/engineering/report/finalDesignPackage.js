@@ -1,5 +1,6 @@
 import { buildDesignReport } from "./designReport.js";
 import { buildStandardsTraceability } from "../standards/standardsTraceability.js";
+import { buildResultTraceability } from "./resultTraceability.js";
 
 const n = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 
@@ -73,11 +74,19 @@ export const buildFinalDesignPackage = ({
     systemSummary,
   });
 
+  const resultTraceability = buildResultTraceability({
+    rooms: normalizedRooms,
+    equipment: equipment || [],
+    ducts: ducts || [],
+    systemSummary,
+  });
+
   return {
-    packageVersion: "18.0.0",
+    packageVersion: "19.0.0",
     generatedAt,
     report,
     standardsTraceability,
+    resultTraceability,
     readiness: {
       reportGenerated: true,
       validationPassed: report.validation.passed,
