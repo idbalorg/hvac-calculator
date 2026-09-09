@@ -38,6 +38,7 @@ export const buildFinalDesignPackage = ({
   systemSummary = null,
   criteria = {},
   approval = null,
+  revision = null,
   generatedAt = null,
 }) => {
   if (!project || typeof project !== "object") throw new Error("project is required");
@@ -72,8 +73,9 @@ export const buildFinalDesignPackage = ({
   const engineeringApproval = buildEngineeringApproval({ engineeringDecision, approval });
 
   return {
-    packageVersion: "22.0.0",
+    packageVersion: "24.0.0",
     generatedAt,
+    revision: revision ? { ...revision } : null,
     report,
     standardsTraceability,
     resultTraceability,
@@ -98,6 +100,9 @@ export const summarizeFinalDesignPackage = (designPackage) => {
   const { summary, validation } = designPackage.report;
   return {
     packageVersion: designPackage.packageVersion,
+    revisionId: designPackage.revision?.revisionId || null,
+    revisionNumber: designPackage.revision?.revisionNumber || null,
+    revisionStatus: designPackage.revision?.status || null,
     validationPassed: validation.passed,
     engineeringReviewStatus: designPackage.engineeringReview?.status || "REVIEW_REQUIRED",
     engineeringDecisionStatus: designPackage.engineeringDecision?.status || "REVIEW_REQUIRED",
