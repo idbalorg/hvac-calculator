@@ -1,0 +1,5 @@
+AUD-001 clean initialization
+AUD-002 accountable release metadata
+AUD-003 invalid event rejection
+AUD-004 release/revision linkage
+AUD-005 serialization/restoration
