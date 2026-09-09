@@ -17,7 +17,7 @@ const base = {
 export const runFinalDesignPackageTests = () => {
   const tests = [];
   const result = buildFinalDesignPackage(base);
-  if (result.packageVersion !== "22.0.0") throw new Error("Package version failed"); tests.push({ id: "PKG-001", name: "Package version", passed: true });
+  if (result.packageVersion !== "24.0.0") throw new Error("Package version failed"); tests.push({ id: "PKG-001", name: "Package version", passed: true });
   if (result.report.reportVersion !== "1.0") throw new Error("Report version failed"); tests.push({ id: "PKG-002", name: "Report generation", passed: true });
   if (result.report.schedules.rooms.length !== 1 || result.report.schedules.rooms[0].roomId !== "R1") throw new Error("Room schedule failed"); tests.push({ id: "PKG-003", name: "Room schedule", passed: true });
   if (result.report.schedules.equipment.length !== 1 || result.report.schedules.equipment[0].equipmentId !== "AC-01") throw new Error("Equipment schedule failed"); tests.push({ id: "PKG-004", name: "Equipment schedule", passed: true });
@@ -50,5 +50,9 @@ export const runFinalDesignPackageTests = () => {
   if (approved.engineeringApproval.status !== "APPROVED" || !approved.engineeringApproval.approved || summarizeFinalDesignPackage(approved).engineeringApprovalStatus !== "APPROVED") throw new Error("Explicit approval failed"); tests.push({ id: "PKG-017", name: "Explicit engineering approval", passed: true });
   const blocked = buildFinalDesignPackage({ ...base, criteria: { ...base.criteria, designConditionVerified: false }, approval: { status: "APPROVED", approver: "Engineer A", reason: "Accepted", evidenceReference: "REV-001", timestamp: "2026-09-08T10:00:00Z" } });
   if (blocked.engineeringApproval.status !== "PENDING" || blocked.engineeringApproval.approved) throw new Error("Unresolved review item incorrectly approved"); tests.push({ id: "PKG-018", name: "Approval blocked by unresolved review", passed: true });
+  const revision = { revisionId: "REV-002", revisionNumber: 2, status: "DRAFT", changeReason: "Updated room load inputs", createdBy: "Engineer A", createdAt: "2026-09-09T09:00:00Z" };
+  const revised = buildFinalDesignPackage({ ...base, revision });
+  const revisedSummary = summarizeFinalDesignPackage(revised);
+  if (revisedSummary.revisionId !== "REV-002" || revisedSummary.revisionNumber !== 2 || revisedSummary.revisionStatus !== "DRAFT") throw new Error("Revision metadata integration failed"); tests.push({ id: "PKG-019", name: "Revision metadata integrated into package", passed: true });
   return tests;
 };
