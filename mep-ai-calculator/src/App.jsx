@@ -9,10 +9,11 @@ import SystemCommissioning from "./pages/SystemCommissioning";
 import FinalDesignPackage from "./pages/FinalDesignPackage";
 import DesignReleaseManagement from "./pages/DesignReleaseManagement.jsx";
 import ReleaseAudit from "./pages/ReleaseAudit.jsx";
+import ReferenceData from "./pages/ReferenceData.jsx";
 import Navbar from "./components/Navbar";
 import EngineeringInputHelp from "./components/EngineeringInputHelp";
 import EngineeringInputGuidance from "./components/EngineeringInputGuidance.jsx";
 
 export default function App() {
-  return <BrowserRouter><Navbar /><EngineeringInputHelp /><EngineeringInputGuidance /><Routes><Route path="/" element={<Landing />} /><Route path="/calculator" element={<Calculator />} /><Route path="/airside" element={<AirsideDesign />} /><Route path="/dx-sizing" element={<DxSystemSizing />} /><Route path="/air-distribution" element={<AirDistribution />} /><Route path="/air-balancing" element={<AirBalancingSystem />} /><Route path="/commissioning" element={<SystemCommissioning />} /><Route path="/final-package" element={<FinalDesignPackage />} /><Route path="/release-management" element={<DesignReleaseManagement />} /><Route path="/release-audit" element={<ReleaseAudit />} /></Routes></BrowserRouter>;
+  return <BrowserRouter><Navbar /><EngineeringInputHelp /><EngineeringInputGuidance /><Routes><Route path="/" element={<Landing />} /><Route path="/calculator" element={<Calculator />} /><Route path="/airside" element={<AirsideDesign />} /><Route path="/dx-sizing" element={<DxSystemSizing />} /><Route path="/air-distribution" element={<AirDistribution />} /><Route path="/air-balancing" element={<AirBalancingSystem />} /><Route path="/commissioning" element={<SystemCommissioning />} /><Route path="/final-package" element={<FinalDesignPackage />} /><Route path="/release-management" element={<DesignReleaseManagement />} /><Route path="/release-audit" element={<ReleaseAudit />} /><Route path="/reference-data" element={<ReferenceData />} /></Routes></BrowserRouter>;
 }
