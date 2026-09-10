@@ -1,3 +1,4 @@
+import { buildProjectDesignConditions } from "../engineering/project/designConditions.js";
 import {
   REFERENCE_DATASET_VERSION,
   listReferenceRecords,
@@ -24,4 +25,5 @@ export const runReferenceDatasetTests = () => [
   { id: "REF-007", name: "Unknown reference is rejected", passed: (() => { expectThrow(() => getReferenceRecord("ventilation", "UNKNOWN"), "Unknown ventilation reference"); return true; })() },
   { id: "REF-008", name: "Invalid reference provenance is rejected", passed: (() => { expectThrow(() => validateReferenceRecord({ id: "BAD", sourceRef: "x", verificationRequired: false }), "must require verification"); return true; })() },
   { id: "REF-009", name: "Reference lists are cloned", passed: (() => { const items = listReferenceRecords("ventilation"); items[0].label = "Changed"; return listReferenceRecords("ventilation")[0].label !== "Changed"; })() },
+  { id: "REF-010", name: "Design-condition calculation carries dataset provenance", passed: (() => { const result = buildProjectDesignConditions({ outdoorConditionId: "LAGOS_IKEJA_ASHRAE_2021", coolingPercentile: "percentile04", outdoorRelativeHumidityPercent: 75 }); return result.referenceData.datasetVersion === REFERENCE_DATASET_VERSION && result.referenceData.location.designConditionId === "LAGOS_IKEJA_ASHRAE_2021"; })() },
 ];
