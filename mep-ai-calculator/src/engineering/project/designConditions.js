@@ -6,6 +6,8 @@
  * when a newer licensed/reference dataset is selected.
  */
 
+import { getReferenceRecord, REFERENCE_DATASET_VERSION } from "../reference/referenceDataset.js";
+
 const assertFinite = (value, name) => {
   if (!Number.isFinite(value)) throw new Error(`${name} must be a finite number`);
 };
@@ -58,7 +60,14 @@ export const buildProjectDesignConditions = ({
     assertRelativeHumidity(outdoorRelativeHumidityPercent, "Outdoor relative humidity");
     outdoor.relativeHumidityPercent = outdoorRelativeHumidityPercent;
   }
-  return { outdoor, selectedCoolingCondition: { percentile: coolingPercentile, dryBulbC: selected.dryBulbC, meanCoincidentWetBulbC: selected.meanCoincidentWetBulbC }, indoor: buildIndoorDesignCondition({ dryBulbC: indoorDryBulbC, relativeHumidityPercent: indoorRelativeHumidityPercent }) };
+  const locationReferenceId = outdoorConditionId === "LAGOS_IKEJA_ASHRAE_2021" ? "LAGOS_IKEJA" : null;
+  const locationReference = locationReferenceId ? getReferenceRecord("locations", locationReferenceId) : null;
+  return {
+    outdoor,
+    selectedCoolingCondition: { percentile: coolingPercentile, dryBulbC: selected.dryBulbC, meanCoincidentWetBulbC: selected.meanCoincidentWetBulbC },
+    indoor: buildIndoorDesignCondition({ dryBulbC: indoorDryBulbC, relativeHumidityPercent: indoorRelativeHumidityPercent }),
+    referenceData: { datasetVersion: REFERENCE_DATASET_VERSION, location: locationReference },
+  };
 };
 
 export const listDesignConditions = () => Object.values(DESIGN_CONDITIONS).map(clone);
