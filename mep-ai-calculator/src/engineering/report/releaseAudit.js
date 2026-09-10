@@ -21,6 +21,20 @@ export const recordReleaseAuditEvent = ({ auditHistory = null, eventType, releas
   return { ...history, events: [...history.events, clone(event)] };
 };
 
+export const recordProductionPromotion = ({ releaseHistory, releaseId, productionCommitSHA, actor, timestamp, evidenceReference, environment = "production", auditHistory = null }) => {
+  requireText(releaseId, "releaseId");
+  requireText(productionCommitSHA, "productionCommitSHA");
+  requireText(actor, "actor");
+  requireText(timestamp, "timestamp");
+  requireText(evidenceReference, "evidence/reference");
+  if (environment !== "production") throw new Error("Production promotion must target the production environment");
+  const release = releaseHistory?.releases?.find((item) => item.releaseId === releaseId);
+  if (!release) throw new Error("releaseId was not found");
+  if (release.status !== "RELEASED") throw new Error("Only a released baseline can be promoted");
+  if (release.productionCommitSHA !== productionCommitSHA.trim()) throw new Error("Promotion commit SHA does not match the released production baseline");
+  return recordReleaseAuditEvent({ auditHistory, eventType: "PROMOTION_RECORDED", releaseId, revisionId: release.revisionId, actor, timestamp, evidenceReference, productionCommitSHA, environment, message: "Production promotion recorded against the released immutable baseline" });
+};
+
 export const serializeReleaseAudit = (history) => JSON.stringify(history);
 export const deserializeReleaseAudit = (value) => { const parsed = typeof value === "string" ? JSON.parse(value) : value; if (!parsed || !Array.isArray(parsed.events)) throw new Error("Invalid release audit history"); return parsed; };
 export const getReleaseAuditFor = (history, releaseId) => (history?.events || []).filter((event) => event.releaseId === releaseId);
