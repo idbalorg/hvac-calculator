@@ -1,15 +1,20 @@
 /**
- * Stage 27: Engineering Reference Dataset
+ * Stage 31: Engineering Reference Dataset
  *
  * Reference data is intentionally separated from calculation logic. Every
  * record carries provenance and a verification flag so the calculator can
  * distinguish sourced reference data from engineer-defined project values.
  *
+ * Envelope records sourced from ASHRAE 90.1-2007 Table 5.5-1 are stored as
+ * benchmark values for Climate Zone 1 (A, B), nonresidential buildings.
+ * They are NOT Lagos project defaults and must not be silently applied to a
+ * project without engineer selection and verification.
+ *
  * Do not treat this catalog as a substitute for the adopted project code,
  * licensed standard tables, manufacturer data, or engineer review.
  */
 
-export const REFERENCE_DATASET_VERSION = "1.0.0";
+export const REFERENCE_DATASET_VERSION = "1.1.0";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const assertString = (value, name) => {
@@ -31,6 +36,20 @@ export const REFERENCE_SOURCES = {
     id: "ASHRAE_62_1_2022",
     title: "ANSI/ASHRAE Standard 62.1-2022",
     subject: "Ventilation and Acceptable Indoor Air Quality",
+    sourceType: "STANDARD",
+    verificationRequired: true,
+  },
+  ASHRAE_2021_FUNDAMENTALS_CH14: {
+    id: "ASHRAE_2021_FUNDAMENTALS_CH14",
+    title: "ASHRAE Handbook - Fundamentals, 2021, Chapter 14",
+    subject: "Climatic Design Information",
+    sourceType: "HANDBOOK",
+    verificationRequired: true,
+  },
+  ASHRAE_90_1_2007_TABLE_5_5_1: {
+    id: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    title: "ANSI/ASHRAE/IESNA Standard 90.1-2007, Table 5.5-1",
+    subject: "Building Envelope Requirements for Climate Zone 1 (A, B)",
     sourceType: "STANDARD",
     verificationRequired: true,
   },
@@ -158,6 +177,71 @@ export const CONSTRUCTION_DATASET = {
     basis: "ENGINEER_DEFINED_STARTER",
     verificationRequired: true,
   },
+  ASHRAE_90_1_CZ1_MASS_WALL: {
+    id: "ASHRAE_90_1_CZ1_MASS_WALL",
+    label: "Mass wall - ASHRAE 90.1 CZ1 nonresidential benchmark",
+    surfaceType: "wall",
+    constructionClass: "mass",
+    climateZone: "1(A,B)",
+    buildingType: "nonresidential",
+    uValueWPerM2K: 3.294,
+    sourceRef: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    basis: "ASHRAE 90.1-2007 Table 5.5-1, Climate Zone 1 (A, B)",
+    benchmarkOnly: true,
+    verificationRequired: true,
+  },
+  ASHRAE_90_1_CZ1_STEEL_FRAMED_WALL: {
+    id: "ASHRAE_90_1_CZ1_STEEL_FRAMED_WALL",
+    label: "Steel-framed wall - ASHRAE 90.1 CZ1 nonresidential benchmark",
+    surfaceType: "wall",
+    constructionClass: "steel_framed",
+    climateZone: "1(A,B)",
+    buildingType: "nonresidential",
+    uValueWPerM2K: 0.704,
+    sourceRef: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    basis: "ASHRAE 90.1-2007 Table 5.5-1, Climate Zone 1 (A, B)",
+    benchmarkOnly: true,
+    verificationRequired: true,
+  },
+  ASHRAE_90_1_CZ1_WOOD_OTHER_WALL: {
+    id: "ASHRAE_90_1_CZ1_WOOD_OTHER_WALL",
+    label: "Wood-framed and other wall - ASHRAE 90.1 CZ1 nonresidential benchmark",
+    surfaceType: "wall",
+    constructionClass: "wood_framed_other",
+    climateZone: "1(A,B)",
+    buildingType: "nonresidential",
+    uValueWPerM2K: 0.505,
+    sourceRef: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    basis: "ASHRAE 90.1-2007 Table 5.5-1, Climate Zone 1 (A, B)",
+    benchmarkOnly: true,
+    verificationRequired: true,
+  },
+  ASHRAE_90_1_CZ1_ABOVE_DECK_ROOF: {
+    id: "ASHRAE_90_1_CZ1_ABOVE_DECK_ROOF",
+    label: "Roof insulation entirely above deck - ASHRAE 90.1 CZ1 benchmark",
+    surfaceType: "roof",
+    constructionClass: "insulation_above_deck",
+    climateZone: "1(A,B)",
+    buildingType: "nonresidential",
+    uValueWPerM2K: 0.358,
+    sourceRef: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    basis: "ASHRAE 90.1-2007 Table 5.5-1, Climate Zone 1 (A, B)",
+    benchmarkOnly: true,
+    verificationRequired: true,
+  },
+  ASHRAE_90_1_CZ1_ATTIC_ROOF: {
+    id: "ASHRAE_90_1_CZ1_ATTIC_ROOF",
+    label: "Attic and other roof - ASHRAE 90.1 CZ1 nonresidential benchmark",
+    surfaceType: "roof",
+    constructionClass: "attic_other",
+    climateZone: "1(A,B)",
+    buildingType: "nonresidential",
+    uValueWPerM2K: 0.193,
+    sourceRef: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    basis: "ASHRAE 90.1-2007 Table 5.5-1, Climate Zone 1 (A, B)",
+    benchmarkOnly: true,
+    verificationRequired: true,
+  },
 };
 
 export const FENESTRATION_DATASET = {
@@ -169,6 +253,36 @@ export const FENESTRATION_DATASET = {
     shgc: null,
     sourceRef: "ENGINEER_DEFINED_STARTER",
     basis: "ENGINEER_DEFINED_STARTER",
+    verificationRequired: true,
+  },
+  ASHRAE_90_1_CZ1_VERTICAL_GLAZING_NONMETAL: {
+    id: "ASHRAE_90_1_CZ1_VERTICAL_GLAZING_NONMETAL",
+    label: "Vertical glazing, nonmetal framing - ASHRAE 90.1 CZ1 benchmark",
+    glazingType: "vertical_glazing",
+    frameType: "nonmetal",
+    wallGlazingRange: "0%-40%",
+    climateZone: "1(A,B)",
+    buildingType: "nonresidential",
+    uValueWPerM2K: 6.814,
+    shgc: null,
+    sourceRef: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    basis: "ASHRAE 90.1-2007 Table 5.5-1, Vertical Glazing 0%-40% of Wall",
+    benchmarkOnly: true,
+    verificationRequired: true,
+  },
+  ASHRAE_90_1_CZ1_VERTICAL_GLAZING_METAL: {
+    id: "ASHRAE_90_1_CZ1_VERTICAL_GLAZING_METAL",
+    label: "Vertical glazing, metal framing - ASHRAE 90.1 CZ1 benchmark",
+    glazingType: "vertical_glazing",
+    frameType: "metal",
+    wallGlazingRange: "0%-40%",
+    climateZone: "1(A,B)",
+    buildingType: "nonresidential",
+    uValueWPerM2K: 6.814,
+    shgc: 0.25,
+    sourceRef: "ASHRAE_90_1_2007_TABLE_5_5_1",
+    basis: "ASHRAE 90.1-2007 Table 5.5-1, Vertical Glazing 0%-40% of Wall",
+    benchmarkOnly: true,
     verificationRequired: true,
   },
 };
