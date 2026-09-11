@@ -1,0 +1,11 @@
+import { buildReferenceDrivenInputs, getReferenceCompleteness } from "../engineering/reference/referenceDrivenInputs.js";
+
+export const runReferenceDrivenInputTests = () => [
+  { id: "REFDRV-001", name: "Reference selection populates ventilation inputs", passed: (() => { const r = buildReferenceDrivenInputs({ locationId: "LAGOS_IKEJA", occupancyActivityId: "OFFICE_TYPING", ventilationId: "OFFICE_SPACE_62_1_2022" }); return r.inputs.ventilation.enabled && r.inputs.ventilation.outdoorAirPerPersonLps === 2.5 && r.inputs.ventilation.outdoorAirPerAreaLpsM2 === 0.3; })() },
+  { id: "REFDRV-002", name: "Reference selection carries occupant activity", passed: buildReferenceDrivenInputs({ occupancyActivityId: "OFFICE_TYPING" }).inputs.people.activityMet === 1.1 },
+  { id: "REFDRV-003", name: "Missing construction data is not fabricated", passed: buildReferenceDrivenInputs({ constructionId: "ENGINEER_DEFINED_MASONRY_WALL" }).inputs.wall.uValueWm2K === null },
+  { id: "REFDRV-004", name: "Missing fenestration data is not fabricated", passed: buildReferenceDrivenInputs({ fenestrationId: "ENGINEER_DEFINED_CLEAR_GLASS" }).inputs.windows.uValueWm2K === null && buildReferenceDrivenInputs({ fenestrationId: "ENGINEER_DEFINED_CLEAR_GLASS" }).inputs.windows.shgc === null },
+  { id: "REFDRV-005", name: "Engineer overrides remain explicit", passed: buildReferenceDrivenInputs({ ventilationId: "OFFICE_SPACE_62_1_2022", engineerOverrides: { ventilation: { effectiveness: 0.9 } } }).inputs.ventilation.effectiveness === 0.9 },
+  { id: "REFDRV-006", name: "Dataset version is retained", passed: buildReferenceDrivenInputs({ locationId: "LAGOS_IKEJA" }).metadata.referenceDatasetVersion === "1.0.0" },
+  { id: "REFDRV-007", name: "Completeness is reported", passed: getReferenceCompleteness(buildReferenceDrivenInputs({ locationId: "LAGOS_IKEJA", occupancyActivityId: "OFFICE_TYPING", ventilationId: "OFFICE_SPACE_62_1_2022", constructionId: "ENGINEER_DEFINED_MASONRY_WALL", fenestrationId: "ENGINEER_DEFINED_CLEAR_GLASS" })).complete === true },
+];
