@@ -5,6 +5,8 @@ import { calculateProjectCoolingLoads } from "../engineering/cooling-load/roomLo
 import { recommendHVACSystems } from "../engineering/system/systemDecision.js";
 import { buildProjectDesignConditions, listDesignConditions } from "../engineering/project/designConditions.js";
 import { createEngineeringInputs, buildEngineeringInputsForRoom, createEquipmentItem, ENGINEERING_INPUT_VERSION } from "../engineering/project/engineeringInputs.js";
+import { buildReferenceDrivenInputs } from "../engineering/reference/referenceDrivenInputs.js";
+import { DEFAULT_REFERENCE_SELECTION, default as ReferenceInputPanel } from "../components/ReferenceInputPanel.jsx";
 
 const blankRoom = (id = "ROOM-1") => ({ id, name: "", length: "", width: "", height: "", people: "", equipmentLoadKw: "", windowAreaM2: "" });
 const designConditionOptions = listDesignConditions();
@@ -15,6 +17,7 @@ const toEngineeringRoom = (room) => createRoom({ id: room.id, name: room.name, l
 export default function CoolingLoadCalculator() {
   const [rooms, setRooms] = useState([blankRoom()]);
   const [engineeringByRoom, setEngineeringByRoom] = useState({ "ROOM-1": clone(DEFAULT_INPUTS) });
+  const [referenceByRoom, setReferenceByRoom] = useState({ "ROOM-1": clone(DEFAULT_REFERENCE_SELECTION) });
   const [criteria, setCriteria] = useState({ ventilation: false, ceiling: false, outdoor: false, plant: false });
   const [zoning, setZoning] = useState("medium");
   const [designMarginPercent, setDesignMarginPercent] = useState("10");
@@ -25,6 +28,11 @@ export default function CoolingLoadCalculator() {
   const [outdoorRelativeHumidityPercent, setOutdoorRelativeHumidityPercent] = useState("75");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+
+  const resolvedReferenceByRoom = useMemo(() => Object.fromEntries(rooms.map((room) => {
+    const selection = referenceByRoom[room.id] || DEFAULT_REFERENCE_SELECTION;
+    return [room.id, buildReferenceDrivenInputs(selection)];
+  })), [rooms, referenceByRoom]);
 
   const summary = useMemo(() => {
     const validRooms = rooms.filter((room) => room.name && Number(room.length) > 0 && Number(room.width) > 0 && Number(room.height) > 0);
@@ -40,17 +48,45 @@ export default function CoolingLoadCalculator() {
     const id = `ROOM-${rooms.length + 1}`;
     setRooms((current) => [...current, blankRoom(id)]);
     setEngineeringByRoom((current) => ({ ...current, [id]: clone(DEFAULT_INPUTS) }));
+    setReferenceByRoom((current) => ({ ...current, [id]: clone(DEFAULT_REFERENCE_SELECTION) }));
   };
   const removeRoom = (index) => {
     if (rooms.length === 1) return;
     const removed = rooms[index];
     setRooms((current) => current.filter((_, i) => i !== index));
     setEngineeringByRoom((current) => { const next = { ...current }; delete next[removed.id]; return next; });
+    setReferenceByRoom((current) => { const next = { ...current }; delete next[removed.id]; return next; });
   };
   const updateEngineering = (roomId, section, key, value) => setEngineeringByRoom((current) => ({ ...current, [roomId]: { ...current[roomId], [section]: { ...current[roomId][section], [key]: value } } }));
   const updateEquipment = (roomId, index, key, value) => setEngineeringByRoom((current) => { const items = [...(current[roomId]?.equipment?.items || [])]; items[index] = { ...items[index], [key]: value }; return { ...current, [roomId]: { ...current[roomId], equipment: { ...current[roomId].equipment, items } } }; });
   const addEquipment = (roomId) => setEngineeringByRoom((current) => ({ ...current, [roomId]: { ...current[roomId], equipment: { ...current[roomId].equipment, items: [...current[roomId].equipment.items, createEquipmentItem({ name: "New equipment" })] } } }));
   const removeEquipment = (roomId, index) => setEngineeringByRoom((current) => ({ ...current, [roomId]: { ...current[roomId], equipment: { ...current[roomId].equipment, items: current[roomId].equipment.items.filter((_, i) => i !== index) } } }));
+  const updateReference = (roomId, key, value) => setReferenceByRoom((current) => ({ ...current, [roomId]: { ...(current[roomId] || DEFAULT_REFERENCE_SELECTION), [key]: value } }));
+
+  const applyReferenceInputs = (roomId) => {
+    const selection = referenceByRoom[roomId] || DEFAULT_REFERENCE_SELECTION;
+    const resolved = buildReferenceDrivenInputs(selection);
+    setEngineeringByRoom((current) => {
+      const base = clone(current[roomId] || DEFAULT_INPUTS);
+      const next = clone(base);
+      const ref = resolved.inputs;
+      next.people.activity = ref.people.activity || next.people.activity;
+      next.ventilation.enabled = ref.ventilation.enabled;
+      if (ref.ventilation.standard) next.ventilation.standard = ref.ventilation.standard;
+      if (ref.ventilation.zoneCategory) next.ventilation.zoneCategory = ref.ventilation.zoneCategory;
+      next.ventilation.outdoorAirPerPersonLps = ref.ventilation.outdoorAirPerPersonLps;
+      next.ventilation.outdoorAirPerAreaLpsM2 = ref.ventilation.outdoorAirPerAreaLpsM2;
+      next.ventilation.effectiveness = ref.ventilation.effectiveness;
+      if (ref.wall.uValueWm2K !== null) next.wall.uValueWm2K = ref.wall.uValueWm2K;
+      if (ref.wall.construction) next.wall.construction = ref.wall.construction;
+      if (ref.windows.uValueWm2K !== null) next.windows.uValueWm2K = ref.windows.uValueWm2K;
+      if (ref.windows.shgc !== null) next.windows.shgc = ref.windows.shgc;
+      if (ref.windows.glazing) next.windows.glazing = ref.windows.glazing;
+      return { ...current, [roomId]: next };
+    });
+    if (resolved.references.location?.designConditionId) setDesignConditionId(resolved.references.location.designConditionId);
+    if (resolved.inputs.ventilation.enabled) setCriteria((current) => ({ ...current, ventilation: true }));
+  };
 
   const calculate = () => {
     setError("");
@@ -63,18 +99,18 @@ export default function CoolingLoadCalculator() {
       const margin = Number(designMarginPercent) || 0;
       const loads = calculateProjectCoolingLoads({ rooms: engineeringRooms, engineeringByRoom: engineering, designMarginPercent: margin });
       const decision = recommendHVACSystems({ totalCoolingLoadKw: Math.max(loads.totalDesignLoadKw, 0.001), floorAreaM2: Math.max(projectSummary.floorAreaM2, 0.001), zoneCount: builtRooms.length, ventilationRequired: criteria.ventilation, zoningPriority: zoning, ceilingSpaceLimited: criteria.ceiling, outdoorUnitSpaceLimited: criteria.outdoor, centralPlantAvailable: criteria.plant });
-      setResult({ rooms: builtRooms, summary: projectSummary, loads, decision, designConditions, engineering });
+      setResult({ rooms: builtRooms, summary: projectSummary, loads, decision, designConditions, engineering, referenceByRoom: clone(referenceByRoom) });
     } catch (e) { setResult(null); setError(e.message || "Please check the project inputs."); }
   };
 
   const saveProject = () => {
     if (!result) return;
     const projects = JSON.parse(localStorage.getItem("hvac-projects") || "[]");
-    localStorage.setItem("hvac-projects", JSON.stringify([...projects, { rooms, engineeringByRoom, criteria, zoning, designMarginPercent, designConditionId, coolingPercentile, indoorDryBulbC, indoorRelativeHumidityPercent, outdoorRelativeHumidityPercent, result, date: new Date().toISOString(), inputModelVersion: ENGINEERING_INPUT_VERSION }]));
+    localStorage.setItem("hvac-projects", JSON.stringify([...projects, { rooms, engineeringByRoom, referenceByRoom, criteria, zoning, designMarginPercent, designConditionId, coolingPercentile, indoorDryBulbC, indoorRelativeHumidityPercent, outdoorRelativeHumidityPercent, result, date: new Date().toISOString(), inputModelVersion: ENGINEERING_INPUT_VERSION }]));
   };
 
   return <div className="container">
-    <div className="page-header"><div><p className="eyebrow">ENGINEERING WORKFLOW · STAGE 12</p><h1 className="title">HVAC Design Calculator</h1><p className="subtitle">Structured project and room engineering inputs connected to the component cooling-load engine.</p></div><span className="version-badge">Input Model {ENGINEERING_INPUT_VERSION}</span></div>
+    <div className="page-header"><div><p className="eyebrow">ENGINEERING WORKFLOW · STAGE 29</p><h1 className="title">HVAC Design Calculator</h1><p className="subtitle">Reference-driven project and room inputs connected to the component cooling-load engine.</p></div><span className="version-badge">Input Model {ENGINEERING_INPUT_VERSION}</span></div>
     <div className="grid calculator-grid">
       <div className="card">
         <div className="section-heading"><h3>Project Rooms</h3><span>01</span></div>
@@ -87,8 +123,9 @@ export default function CoolingLoadCalculator() {
             <Input label="Height" value={room.height} onChange={(v) => updateRoom(index, "height", v)} placeholder="m" type="number" min="0" /><Input label="Occupants" value={room.people} onChange={(v) => updateRoom(index, "people", v)} placeholder="people" type="number" min="0" />
             <Input label="Equipment allowance" value={room.equipmentLoadKw} onChange={(v) => updateRoom(index, "equipmentLoadKw", v)} placeholder="kW" type="number" min="0" /><Input label="Window area" value={room.windowAreaM2} onChange={(v) => updateRoom(index, "windowAreaM2", v)} placeholder="m²" type="number" min="0" />
           </div>
+          <ReferenceInputPanel selection={referenceByRoom[room.id] || DEFAULT_REFERENCE_SELECTION} onChange={(key, value) => updateReference(room.id, key, value)} resolved={resolvedReferenceByRoom[room.id]} onApply={() => applyReferenceInputs(room.id)} />
           <div className="section-heading compact"><h4>Engineering Inputs</h4><span>Room</span></div>
-          <p className="form-note">Values are room-specific. Preliminary values are visible and can be replaced with project/reference data.</p>
+          <p className="form-note">Values are room-specific. Reference-applied values can be replaced with explicit project/engineer inputs.</p>
           <RoomEngineeringForm roomId={room.id} inputs={engineeringByRoom[room.id]} updateEngineering={updateEngineering} updateEquipment={updateEquipment} addEquipment={addEquipment} removeEquipment={removeEquipment} />
         </div>)}
         <button type="button" className="secondary-button" onClick={addRoom}>+ Add Room</button>
@@ -112,9 +149,10 @@ export default function CoolingLoadCalculator() {
 
       {result && <div className="results-stack">
         <div className="card"><div className="section-heading"><h3>Design Conditions</h3><span>04</span></div><div className="stat"><span>Location</span><b>{result.designConditions.outdoor.location}</b></div><div className="stat"><span>Source</span><b>ASHRAE {result.designConditions.outdoor.sourceEdition}</b></div><div className="stat"><span>Cooling basis</span><b>{result.designConditions.selectedCoolingCondition.percentile === "percentile04" ? "0.4%" : result.designConditions.selectedCoolingCondition.percentile === "percentile1" ? "1%" : "2%"}</b></div><div className="stat"><span>Outdoor DB / MCWB</span><b>{result.designConditions.selectedCoolingCondition.dryBulbC} / {result.designConditions.selectedCoolingCondition.meanCoincidentWetBulbC} °C</b></div><div className="stat"><span>Indoor DB / RH</span><b>{result.designConditions.indoor.dryBulbC} °C / {result.designConditions.indoor.relativeHumidityPercent}%</b></div><div className="stat"><span>Outdoor RH input</span><b>{result.designConditions.outdoor.relativeHumidityPercent}%</b></div></div>
-        <div className="card"><div className="section-heading"><h3>Project Cooling Load</h3><span>05</span></div><div className="stat"><span>Conditioned Area</span><b>{result.summary.floorAreaM2.toFixed(2)} m²</b></div><div className="stat"><span>Room Volume</span><b>{result.summary.volumeM3.toFixed(2)} m³</b></div><div className="stat"><span>Total Occupants</span><b>{result.summary.occupants}</b></div><div className="stat"><span>Raw Cooling Load</span><b>{result.loads.totalRawLoadKw.toFixed(2)} kW</b></div><div className="stat"><span>Design Cooling Load</span><b>{result.loads.totalDesignLoadKw.toFixed(2)} kW</b></div></div>
-        <div className="card"><div className="section-heading"><h3>Room Load Schedule</h3><span>06</span></div>{result.loads.roomResults.map((room) => <div className="stat" key={room.roomId}><span>{room.roomId} · {room.roomName} · {room.geometry.floorAreaM2.toFixed(1)} m²</span><b>Raw {(room.rawLoad.totalW / 1000).toFixed(2)} kW · Design {(room.designLoad.totalW / 1000).toFixed(2)} kW</b></div>)}</div>
-        <div className="card decision-card"><div className="section-heading"><h3>System Decision</h3><span>07</span></div><div className="recommendation"><span>Recommended system</span><strong>{result.decision.recommendedLabel}</strong><small>{result.decision.confidence === "RELATIVE_HIGH" ? "Strongest rule-based option" : "Engineering review required"}</small></div><div className="ranking-list">{result.decision.options.map((option, index) => <div className={`ranking-row ${index === 0 ? "selected" : ""}`} key={option.systemType}><span className="rank">{index + 1}</span><div><b>{option.label}</b><small>{option.reasons[0] || option.warnings[0] || "Viable for further evaluation"}</small></div><strong>{option.score}</strong></div>)}</div><p className="engineering-note">{result.decision.engineeringNote}</p><button className="secondary-button" onClick={saveProject}>Save Project</button></div>
+        <div className="card"><div className="section-heading"><h3>Reference Basis</h3><span>05</span></div>{result.rooms.map((room) => { const selection = result.referenceByRoom?.[room.id]; const resolved = resolvedReferenceByRoom[room.id]; return <div className="room-card" key={room.id}><div className="stat"><span>{room.id} · {room.name}</span><b>{resolved?.metadata?.referenceDatasetVersion ? `Dataset v${resolved.metadata.referenceDatasetVersion}` : "Reference data"}</b></div><div className="stat"><span>Location / activity</span><b>{resolved?.references?.location?.name || "Not selected"} · {resolved?.references?.occupantActivity?.label || "Not selected"}</b></div><div className="stat"><span>Ventilation basis</span><b>{resolved?.references?.ventilation?.label || "Not selected"}</b></div><div className="stat"><span>Source references</span><b>{resolved?.references ? Object.values(resolved.references).filter(Boolean).map((r) => r.sourceRef).join(" · ") : "None"}</b></div></div>; })}</div>
+        <div className="card"><div className="section-heading"><h3>Project Cooling Load</h3><span>06</span></div><div className="stat"><span>Conditioned Area</span><b>{result.summary.floorAreaM2.toFixed(2)} m²</b></div><div className="stat"><span>Room Volume</span><b>{result.summary.volumeM3.toFixed(2)} m³</b></div><div className="stat"><span>Total Occupants</span><b>{result.summary.occupants}</b></div><div className="stat"><span>Raw Cooling Load</span><b>{result.loads.totalRawLoadKw.toFixed(2)} kW</b></div><div className="stat"><span>Design Cooling Load</span><b>{result.loads.totalDesignLoadKw.toFixed(2)} kW</b></div></div>
+        <div className="card"><div className="section-heading"><h3>Room Load Schedule</h3><span>07</span></div>{result.loads.roomResults.map((room) => <div className="stat" key={room.roomId}><span>{room.roomId} · {room.roomName} · {room.geometry.floorAreaM2.toFixed(1)} m²</span><b>Raw {(room.rawLoad.totalW / 1000).toFixed(2)} kW · Design {(room.designLoad.totalW / 1000).toFixed(2)} kW</b></div>)}</div>
+        <div className="card decision-card"><div className="section-heading"><h3>System Decision</h3><span>08</span></div><div className="recommendation"><span>Recommended system</span><strong>{result.decision.recommendedLabel}</strong><small>{result.decision.confidence === "RELATIVE_HIGH" ? "Strongest rule-based option" : "Engineering review required"}</small></div><div className="ranking-list">{result.decision.options.map((option, index) => <div className={`ranking-row ${index === 0 ? "selected" : ""}`} key={option.systemType}><span className="rank">{index + 1}</span><div><b>{option.label}</b><small>{option.reasons[0] || option.warnings[0] || "Viable for further evaluation"}</small></div><strong>{option.score}</strong></div>)}</div><p className="engineering-note">{result.decision.engineeringNote}</p><button className="secondary-button" onClick={saveProject}>Save Project</button></div>
       </div>}
     </div>
   </div>;
@@ -137,7 +175,7 @@ function RoomEngineeringForm({ roomId, inputs, updateEngineering, updateEquipmen
     </div>
     <div className="section-heading compact"><h4>Ventilation</h4><span>Room</span></div>
     <div className="checks"><Check label="Include mechanical ventilation load" checked={safe.ventilation.enabled} onChange={(v) => updateEngineering(roomId, "ventilation", "enabled", v)} /></div>
-    <div className="input-grid"><Input label="Ventilation standard/basis" value={safe.ventilation.standard} onChange={(v) => updateEngineering(roomId, "ventilation", "standard", v)} placeholder="Reference" /><Input label="Zone category" value={safe.ventilation.zoneCategory} onChange={(v) => updateEngineering(roomId, "ventilation", "zoneCategory", v)} placeholder="Category" /><Input label="Outdoor air/person" value={safe.ventilation.outdoorAirPerPersonLps} onChange={(v) => updateEngineering(roomId, "ventilation", "outdoorAirPerPersonLps", v)} type="number" min="0" placeholder="L/s-person" /><Input label="Outdoor air/area" value={safe.ventilation.outdoorAirPerAreaLpsM2} onChange={(v) => updateEngineering(roomId, "ventilation", "outdoorAirPerAreaLpsM2", v)} type="number" min="0" placeholder="L/s-m²" /><Input label="Ventilation effectiveness" value={safe.ventilation.effectiveness} onChange={(v) => updateEngineering(roomId, "ventilation", "effectiveness", v)} type="number" min="0.01" placeholder="factor" /></div>
+    <div className="input-grid"><div><label>Ventilation standard/basis</label><input value={safe.ventilation.standard ?? ""} onChange={(e) => updateEngineering(roomId, "ventilation", "standard", e.target.value)} placeholder="Reference" /></div><div><label>Zone category</label><input value={safe.ventilation.zoneCategory ?? ""} onChange={(e) => updateEngineering(roomId, "ventilation", "zoneCategory", e.target.value)} placeholder="Category" /></div><Input label="Outdoor air/person" value={safe.ventilation.outdoorAirPerPersonLps} onChange={(v) => updateEngineering(roomId, "ventilation", "outdoorAirPerPersonLps", v)} type="number" min="0" placeholder="L/s-person" /><Input label="Outdoor air/area" value={safe.ventilation.outdoorAirPerAreaLpsM2} onChange={(v) => updateEngineering(roomId, "ventilation", "outdoorAirPerAreaLpsM2", v)} type="number" min="0" placeholder="L/s-m²" /><Input label="Ventilation effectiveness" value={safe.ventilation.effectiveness} onChange={(v) => updateEngineering(roomId, "ventilation", "effectiveness", v)} type="number" min="0.01" placeholder="factor" /></div>
     <div className="section-heading compact"><h4>Infiltration</h4><span>Room</span></div>
     <div className="checks"><Check label="Include infiltration load" checked={safe.infiltration.enabled} onChange={(v) => updateEngineering(roomId, "infiltration", "enabled", v)} /></div>
     <div className="input-grid"><div><label>Infiltration method</label><select value={safe.infiltration.method} onChange={(e) => updateEngineering(roomId, "infiltration", "method", e.target.value)}><option value="ACH">Air changes per hour</option><option value="AIRFLOW">Direct airflow</option></select></div><Input label="Infiltration ACH" value={safe.infiltration.airChangesPerHour} onChange={(v) => updateEngineering(roomId, "infiltration", "airChangesPerHour", v)} type="number" min="0" placeholder="ACH" /><Input label="Infiltration airflow" value={safe.infiltration.airflowLps} onChange={(v) => updateEngineering(roomId, "infiltration", "airflowLps", v)} type="number" min="0" placeholder="L/s" /></div>
