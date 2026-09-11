@@ -7,6 +7,9 @@ import {
 
 const REQUIRED_CATEGORIES = ["locations", "occupantActivities", "ventilation", "constructions", "fenestration"];
 
+const isControlledSourceRef = (sourceRef, sourceIds) =>
+  [...sourceIds].some((sourceId) => sourceRef === sourceId || sourceRef.startsWith(`${sourceId}_`));
+
 export const auditReferenceDataset = (dataset = REFERENCE_DATASET) => {
   const issues = [];
   const warnings = [];
@@ -25,7 +28,7 @@ export const auditReferenceDataset = (dataset = REFERENCE_DATASET) => {
       if (!record.id) issues.push(`${category}: record id is missing.`);
       if (!record.sourceRef) issues.push(`${category}/${record.id}: sourceRef is missing.`);
       if (record.verificationRequired !== true) issues.push(`${category}/${record.id}: verificationRequired must be true.`);
-      if (record.sourceRef && !controlledSourceRefs.has(record.sourceRef)) {
+      if (record.sourceRef && !isControlledSourceRef(record.sourceRef, controlledSourceRefs)) {
         issues.push(`${category}/${record.id}: sourceRef ${record.sourceRef} is not a controlled source identifier.`);
       }
       if (record.sourceRef === "ENGINEER_DEFINED_STARTER") categoryStats[category].engineerDefinedRecords += 1;
@@ -45,7 +48,7 @@ export const auditReferenceDataset = (dataset = REFERENCE_DATASET) => {
   const sourceIds = new Set(Object.keys(sources));
 
   allRecords.forEach((record) => {
-    if (record.sourceRef && record.sourceRef.includes("ASHRAE") && !sourceIds.has(record.sourceRef)) {
+    if (record.sourceRef && record.sourceRef.includes("ASHRAE") && !isControlledSourceRef(record.sourceRef, sourceIds)) {
       issues.push(`${record.id}: ASHRAE sourceRef ${record.sourceRef} is not registered in dataset.sources.`);
     }
     if (record.benchmarkOnly === true && record.sourceRef === "ENGINEER_DEFINED_STARTER") {
