@@ -41,6 +41,7 @@ import { runRevisionControlTests } from "./revisionControl.test.js";
 import { runReleaseControlTests } from "./releaseControl.test.js";
 import { runReleaseAuditTests } from "./releaseAudit.test.js";
 import { runReferenceDatasetTests } from "./referenceDataset.test.js";
+import { runReferenceDrivenInputTests } from "./referenceDrivenInputs.test.js";
 
 const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({ id: result.id, name: result.name, run: () => { if (!result.passed) throw new Error(result.error || `${result.id} failed`); return result; }, groupId, groupName }));
 
@@ -110,6 +111,7 @@ export const runValidation = () => {
     ...expandGroupedTests("RELEASE", "Design Package Release and Baseline Management", runReleaseControlTests),
     ...expandGroupedTests("AUDIT", "Design Release Audit Trail", runReleaseAuditTests),
     ...expandGroupedTests("REF", "Stage 27 Engineering Reference Dataset", runReferenceDatasetTests),
+    ...expandGroupedTests("REFDRV", "Stage 28 Reference-Driven Engineering Inputs", runReferenceDrivenInputTests),
   ];
   const results = tests.map(({ id, name, run, groupId, groupName }) => { try { const result = run(); return { id, name, status: "PASS", result, groupId, groupName }; } catch (error) { return { id, name, status: "FAIL", error: error instanceof Error ? error.message : String(error), groupId, groupName }; } });
   return { passed: results.every((result) => result.status === "PASS"), total: results.length, passedCount: results.filter((result) => result.status === "PASS").length, failedCount: results.filter((result) => result.status === "FAIL").length, results };
