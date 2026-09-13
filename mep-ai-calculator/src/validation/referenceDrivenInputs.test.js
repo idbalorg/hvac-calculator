@@ -1,5 +1,13 @@
 import { buildReferenceDrivenInputs, getReferenceCompleteness } from "../engineering/reference/referenceDrivenInputs.js";
 import { applyReferenceToEngineeringInputs, mergeReferenceBasisIntoEngineeringResult } from "../engineering/reference/referenceCalculationBridge.js";
+import { calculateRoomCoolingLoad } from "../engineering/cooling-load/roomLoadEngine.js";
+
+const designConditions = {
+  selectedCoolingCondition: { dryBulbC: 34.8 },
+  indoor: { dryBulbC: 24, relativeHumidityPercent: 50 },
+  outdoor: { relativeHumidityPercent: 75 },
+};
+const room = { id: "R32", name: "Reference Test Room", length: 5, width: 4, height: 3, people: 0, equipmentLoadKw: 0, windowAreaM2: 10 };
 
 export const runReferenceDrivenInputTests = () => [
   { id: "REFDRV-001", name: "Reference selection populates ventilation inputs", passed: (() => { const r = buildReferenceDrivenInputs({ locationId: "LAGOS_IKEJA", occupancyActivityId: "OFFICE_TYPING", ventilationId: "OFFICE_SPACE_62_1_2022" }); return r.inputs.ventilation.enabled && r.inputs.ventilation.outdoorAirPerPersonLps === 2.5 && r.inputs.ventilation.outdoorAirPerAreaLpsM2 === 0.3; })() },
@@ -17,4 +25,7 @@ export const runReferenceDrivenInputTests = () => [
   { id: "REFDRV-013", name: "Reference provenance is preserved", passed: (() => { const r = buildReferenceDrivenInputs({ constructionId: "ASHRAE_90_1_CZ1_MASS_WALL" }); const applied = applyReferenceToEngineeringInputs({}, r); return applied.referenceBasis.construction.id === "ASHRAE_90_1_CZ1_MASS_WALL" && applied.referenceBasis.datasetVersion === "1.1.0" && applied.referenceBasis.verificationRequired === true; })() },
   { id: "REFDRV-014", name: "Reference basis can be attached to calculation result", passed: mergeReferenceBasisIntoEngineeringResult({ method: "component-by-component-room-load-assembly" }, { construction: { id: "TEST" }, datasetVersion: "1.1.0" }).metadata.referenceBasis.datasetVersion === "1.1.0" },
   { id: "REFDRV-015", name: "Reference application is explicitly marked", passed: (() => { const r = buildReferenceDrivenInputs({ constructionId: "ASHRAE_90_1_CZ1_MASS_WALL" }); return applyReferenceToEngineeringInputs({}, r).referenceBasis.appliedExplicitly === true; })() },
+  { id: "REFDRV-016", name: "Applied wall reference changes the calculated wall load", passed: (() => { const r = buildReferenceDrivenInputs({ constructionId: "ASHRAE_90_1_CZ1_MASS_WALL" }); const applied = applyReferenceToEngineeringInputs({ wall: { uValueWm2K: 0.5, cltdK: 8 } }, r); const engineering = { walls: { area: 10, uValue: applied.inputs.wall.uValueWm2K, cltd: 8 }, people: { sensibleHeatPerPerson: 0, latentHeatPerPerson: 0 }, lighting: { powerDensity: 0 }, equipment: { items: [] } }; const result = calculateRoomCoolingLoad({ room, engineering }); return result.components.walls.total === 3.294 * 10 * 8; })() },
+  { id: "REFDRV-017", name: "Applied fenestration reference changes the calculated solar gain", passed: (() => { const r = buildReferenceDrivenInputs({ fenestrationId: "ASHRAE_90_1_CZ1_VERTICAL_GLAZING_METAL" }); const applied = applyReferenceToEngineeringInputs({ windows: { uValueWm2K: 2.8, shgc: 0.4 } }, r); const engineering = { windows: { area: 10, uValue: applied.inputs.windows.uValueWm2K, cltd: 0, shgc: applied.inputs.windows.shgc, solarIrradiance: 500, shadingFactor: 1 }, people: { sensibleHeatPerPerson: 0, latentHeatPerPerson: 0 }, lighting: { powerDensity: 0 }, equipment: { items: [] } }; const result = calculateRoomCoolingLoad({ room, engineering }); return result.components.windows.total === 10 * 0.25 * 500; })() },
+  { id: "REFDRV-018", name: "Manual engineering inputs remain usable without references", passed: (() => { const engineering = { walls: { area: 10, uValue: 0.5, cltd: 8 }, windows: { area: 0, uValue: 2.8, cltd: 6, shgc: 0.4, solarIrradiance: 250 }, people: { sensibleHeatPerPerson: 75, latentHeatPerPerson: 55 }, lighting: { powerDensity: 10 }, equipment: { items: [] } }; const result = calculateRoomCoolingLoad({ room: { ...room, people: 2, windowAreaM2: 0 }, engineering }); return Number.isFinite(result.rawLoad.totalW) && result.rawLoad.totalW > 0; })() },
 ];
