@@ -5,25 +5,19 @@
  * load calculations. It creates report-ready traces only for rooms where the
  * reference bridge was explicitly applied.
  */
-import { applyReferenceToEngineeringInputs, buildReferenceResultTrace } from "./referenceCalculationBridge.js";
+import { buildReferenceResultTrace } from "./referenceCalculationBridge.js";
 
 const clone = (value) => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 
 export const buildReferenceTraceForRoom = ({
   engineeringInputs = null,
-  resolvedReference = null,
-  appliedReferenceInputs = null,
+  appliedReference = null,
 } = {}) => {
-  if (!engineeringInputs || !resolvedReference) return null;
-
-  const applied = appliedReferenceInputs || applyReferenceToEngineeringInputs(
-    engineeringInputs,
-    resolvedReference,
-  );
+  if (!engineeringInputs || !appliedReference?.referenceBasis || !appliedReference?.inputs) return null;
 
   return buildReferenceResultTrace({
-    referenceBasis: applied.referenceBasis,
-    referenceAppliedInputs: applied.inputs,
+    referenceBasis: appliedReference.referenceBasis,
+    referenceAppliedInputs: appliedReference.inputs,
     finalInputs: engineeringInputs,
   });
 };
@@ -36,13 +30,11 @@ export const buildReferenceTraceForRoom = ({
 export const buildReferenceTraceByRoom = ({
   roomIds = [],
   engineeringByRoom = {},
-  resolvedReferenceByRoom = {},
-  appliedReferenceInputsByRoom = {},
+  appliedReferenceByRoom = {},
 } = {}) => Object.fromEntries(roomIds.map((roomId) => [
   roomId,
   clone(buildReferenceTraceForRoom({
     engineeringInputs: engineeringByRoom[roomId],
-    resolvedReference: resolvedReferenceByRoom[roomId],
-    appliedReferenceInputs: appliedReferenceInputsByRoom[roomId],
+    appliedReference: appliedReferenceByRoom[roomId],
   })),
 ]));
