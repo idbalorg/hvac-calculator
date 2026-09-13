@@ -1,0 +1,15 @@
+import { calculateAirsideDesign, calculateAirState, calculateRoomSensibleHeatRatio, calculateSupplyAirflow, calculateSupplyAirTemperature } from "../engineering/airside/psychrometricDesign.js";
+
+export const runPsychrometricDesignTests = () => {
+  const tests = [
+    { id: "PSYCH-001", name: "Calculate room sensible heat ratio", run: () => { const r = calculateRoomSensibleHeatRatio({ sensibleLoadW: 7000, totalLoadW: 10000 }); if (r !== 0.7) throw new Error("SHR mismatch"); } },
+    { id: "PSYCH-002", name: "Calculate supply airflow", run: () => { const r = calculateSupplyAirflow({ roomSensibleLoadW: 6000, roomDryBulbC: 24, supplyDryBulbC: 14 }); if (Math.abs(r.airflowM3s - 0.4970178926) > 1e-9) throw new Error("Supply airflow mismatch"); } },
+    { id: "PSYCH-003", name: "Calculate supply-air temperature from airflow", run: () => { const r = calculateSupplyAirTemperature({ roomDryBulbC: 24, roomSensibleLoadW: 6000, airflowM3s: 0.4970178926 }); if (Math.abs(r.supplyDryBulbC - 14) > 1e-6) throw new Error("Supply temperature mismatch"); } },
+    { id: "PSYCH-004", name: "Calculate psychrometric air state", run: () => { const r = calculateAirState({ dryBulbC: 24, relativeHumidityPercent: 50 }); if (!(r.humidityRatioKgKg > 0) || !(r.enthalpyKJkg > 40)) throw new Error("Air state invalid"); } },
+    { id: "PSYCH-005", name: "Calculate mixed air state from outdoor fraction", run: () => { const r = calculateAirsideDesign({ roomLoad: { sensibleLoadW: 6000, totalLoadW: 8000 }, roomDryBulbC: 24, roomRelativeHumidityPercent: 50, supplyDryBulbC: 14, outdoorAirflowM3s: 0.05, outdoorAirState: { dryBulbC: 34.8, relativeHumidityPercent: 75 } }); if (!(r.mixedAir.dryBulbC > 24) || !(r.mixedAir.dryBulbC < 34.8)) throw new Error("Mixed air temperature invalid"); } },
+    { id: "PSYCH-006", name: "Calculate coil load", run: () => { const r = calculateAirsideDesign({ roomLoad: { sensibleLoadW: 6000, totalLoadW: 8000 }, roomDryBulbC: 24, roomRelativeHumidityPercent: 50, supplyDryBulbC: 14 }); if (!(r.coil.totalLoadW > 0) || !(r.coil.sensibleLoadW > 0)) throw new Error("Coil load invalid"); } },
+    { id: "PSYCH-007", name: "Reject non-cooling supply temperature", run: () => { let rejected = false; try { calculateSupplyAirflow({ roomSensibleLoadW: 5000, roomDryBulbC: 24, supplyDryBulbC: 25 }); } catch { rejected = true; } if (!rejected) throw new Error("Invalid supply temperature accepted"); } },
+    { id: "PSYCH-008", name: "Reject excessive outdoor airflow", run: () => { let rejected = false; try { calculateAirsideDesign({ roomLoad: { sensibleLoadW: 5000, totalLoadW: 7000 }, roomDryBulbC: 24, roomRelativeHumidityPercent: 50, supplyDryBulbC: 14, outdoorAirflowM3s: 1, outdoorAirState: { dryBulbC: 34, relativeHumidityPercent: 70 } }); } catch { rejected = true; } if (!rejected) throw new Error("Invalid outdoor airflow accepted"); } },
+  ];
+  return tests.map((test) => { try { test.run(); return { id: test.id, name: test.name, passed: true }; } catch (error) { return { id: test.id, name: test.name, passed: false, error: error.message }; } });
+};
