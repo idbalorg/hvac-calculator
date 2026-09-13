@@ -3,7 +3,7 @@
  * and traceability metadata for calculation results.
  */
 
-const clone = (value) => JSON.parse(JSON.stringify(value));
+const clone = (value) => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 const isSet = (value) => value !== null && value !== undefined;
 
 export const applyReferenceToEngineeringInputs = (engineeringInputs = {}, resolvedReference = {}) => {
