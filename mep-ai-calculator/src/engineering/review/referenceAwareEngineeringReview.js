@@ -1,15 +1,13 @@
-import { validateReferenceTraceIntegrity } from "./referenceTraceIntegrity.js";
+import { validateReferenceTraceIntegrity } from "../reference/referenceTraceIntegrity.js";
 
 const normalizeRoomId = (room, index) => room?.roomId ?? `ROOM-${index + 1}`;
-
 const reviewStatus = (passed) => (passed ? "PASS" : "REVIEW_REQUIRED");
 
 /**
  * Stage 39: reference-aware engineering review adapter.
  *
- * This is deliberately non-mutating. The existing engineering review remains
- * authoritative for engineering checks. Reference trace integrity is an
- * additional evidence gate only when a reference was explicitly applied.
+ * Non-mutating evidence gate. The existing engineering review remains
+ * authoritative for engineering checks.
  */
 export const buildReferenceAwareEngineeringReview = ({
   baseReview = null,
