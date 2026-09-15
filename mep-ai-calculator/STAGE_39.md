@@ -22,5 +22,8 @@ It adds a review gate only. A reference integrity problem becomes `REVIEW_REQUIR
 - Production branch untouched.
 - Existing draft PR #2 remains unmerged.
 
+## Validation status
+Stage 39 validation is registered in the main runner. CI must confirm the complete suite, including the new `REFREV` group, before this stage is considered validation-complete.
+
 ## Next stage
 After Stage 39 CI is confirmed, proceed to the next engineering workflow capability. Production promotion remains a separate release decision.
