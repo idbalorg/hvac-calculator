@@ -55,7 +55,7 @@ export const validateReferenceTraceIntegrity = ({
     const expectedOverrides = expectedFields.filter((field) => field.overridden).map((field) => field.label);
     const actualOverrides = (trace.overriddenFields || []).map((field) => field.label);
     if (!sameValue(actualOverrides, expectedOverrides)) errors.push("Overridden field list does not match final engineering inputs");
-    if (trace.engineerOverrideWins !== expectedOverrides.length > 0) errors.push("engineerOverrideWins does not match override state");
+    if (trace.engineerOverrideWins !== (expectedOverrides.length > 0)) errors.push("engineerOverrideWins does not match override state");
   }
 
   if (trace.referenceBasis?.datasetVersion !== appliedReference?.referenceBasis?.datasetVersion) errors.push("Dataset version provenance mismatch");
