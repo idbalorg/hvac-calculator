@@ -124,15 +124,13 @@ export const calculateVentilationLoad = ({
   const moistAirMassFlowKgS = airDensityKgM3 * airflowM3s;
   const dryAirMassFlowKgS = moistAirMassFlowKgS / (1 + outdoorHumidityRatio);
 
-  const sensibleW = Math.max(
-    0,
-    moistAirMassFlowKgS * cpAirJKgK * (outdoorDryBulbC - indoorDryBulbC),
-  );
-  const totalW = Math.max(
-    0,
-    dryAirMassFlowKgS * 1000 * (outdoorEnthalpy - indoorEnthalpy),
-  );
-  const latentW = Math.max(0, totalW - sensibleW);
+  // Do not clamp negative sensible/total loads: a genuinely cooler and/or drier
+  // outdoor state is physically capable of reducing the room cooling load.
+  const sensibleW =
+    moistAirMassFlowKgS * cpAirJKgK * (outdoorDryBulbC - indoorDryBulbC);
+  const totalW =
+    dryAirMassFlowKgS * 1000 * (outdoorEnthalpy - indoorEnthalpy);
+  const latentW = totalW - sensibleW;
 
   return {
     airflowLps: outdoorAirLps,

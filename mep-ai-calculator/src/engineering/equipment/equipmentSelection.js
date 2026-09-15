@@ -16,7 +16,13 @@ const airflowCheck = (equipment, requiredAirflowCfm, airflowToleranceFraction) =
   if (!range) return { status: "MISSING_DATA", pass: false, marginCfm: null, marginFraction: null };
   const lowerBound = requiredAirflowCfm * (1 - airflowToleranceFraction);
   const upperBound = requiredAirflowCfm * (1 + airflowToleranceFraction);
-  const pass = range.minCfm <= upperBound && range.maxCfm >= lowerBound;
+  const hasSingleRatedAirflow = equipment.airflowCfm !== undefined;
+  // A single rated airflow is treated as available design airflow, so it must
+  // meet or exceed the required airflow. A min/max range must contain the
+  // required design airflow so the unit can be selected at that duty point.
+  const pass = hasSingleRatedAirflow
+    ? range.maxCfm >= lowerBound
+    : range.minCfm <= upperBound && range.maxCfm >= lowerBound;
   const marginCfm = range.maxCfm - requiredAirflowCfm;
   return {
     status: pass ? "PASS" : "FAIL",
@@ -156,24 +162,56 @@ export const selectEquipmentPair = ({
   });
   const outdoorCatalogue = normalizeEquipmentCatalogue(outdoorUnits);
   const pairs = [];
-  for (const indoor of indoorResult.candidates) {
+  const pairEvaluations = [];
+
+  for (const indoorEvaluation of indoorResult.evaluated) {
     for (const outdoor of outdoorCatalogue) {
-      const compatibility = validateEquipmentPair({ indoorUnit: indoor.equipment, outdoorUnit: outdoor });
-      if (compatibility.compatible) {
+      const compatibility = validateEquipmentPair({ indoorUnit: indoorEvaluation.equipment, outdoorUnit: outdoor });
+      const pairAccepted = indoorEvaluation.acceptable && compatibility.compatible;
+      pairEvaluations.push({
+        indoorUnit: indoorEvaluation.equipment,
+        outdoorUnit: outdoor,
+        indoorEvaluation,
+        compatibility,
+        acceptable: pairAccepted,
+        reasons: [
+          ...indoorEvaluation.reasons,
+          ...compatibility.reasons,
+        ],
+      });
+      if (pairAccepted) {
         pairs.push({
-          indoorUnit: indoor.equipment,
+          indoorUnit: indoorEvaluation.equipment,
           outdoorUnit: outdoor,
-          indoorEvaluation: indoor,
+          indoorEvaluation,
           compatibility,
         });
       }
     }
   }
+
   pairs.sort((a, b) => a.indoorEvaluation.excessCapacityKw - b.indoorEvaluation.excessCapacityKw || a.indoorUnit.id.localeCompare(b.indoorUnit.id));
+
+  const rejectionCounts = {};
+  for (const evaluation of pairEvaluations.filter((item) => !item.acceptable)) {
+    for (const reason of new Set(evaluation.reasons)) rejectionCounts[reason] = (rejectionCounts[reason] ?? 0) + 1;
+  }
+
   return {
     requiredCapacityKw,
+    requiredAirflowCfm,
+    requiredEspPa,
     pairs,
     selected: pairs[0] ?? null,
+    indoorSelection: indoorResult,
+    pairEvaluations,
+    diagnostics: {
+      indoorUnitsEvaluated: indoorResult.evaluated.length,
+      indoorCandidates: indoorResult.candidates.length,
+      outdoorUnitsEvaluated: outdoorCatalogue.length,
+      pairCombinationsEvaluated: pairEvaluations.length,
+      rejectionCounts,
+    },
     warnings: pairs.length === 0 ? ["NO_VALID_INDOOR_OUTDOOR_PAIR"] : [],
   };
 };

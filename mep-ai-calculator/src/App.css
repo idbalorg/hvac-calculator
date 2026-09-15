@@ -47,3 +47,31 @@ button:hover { background: #1d4ed8; }
 .cta { display: inline-block; margin-top: 30px; padding: 12px 18px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .container { padding: 20px; } .page-header { flex-direction: column; } }
 @media (max-width: 520px) { .input-grid { grid-template-columns: 1fr; } .nav { padding: 15px 20px; } }
+
+@media print {
+  @page { margin: 12mm; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: #fff !important; color: #111 !important; }
+  .nav, button, .no-print { display: none !important; }
+  .container { max-width: none; padding: 0; margin: 0; }
+  .page-header { margin-bottom: 14px; }
+  .page-header .subtitle { color: #444 !important; }
+  .page-header .eyebrow { color: #333 !important; }
+  .version-badge { color: #111 !important; border-color: #999 !important; }
+  .calculator-grid { display: block; }
+  .calculator-grid > .card:first-child { display: none !important; }
+  .results-stack { display: block; }
+  .results-stack > .card { margin-bottom: 10mm; }
+  .final-design-package .card { background: #fff !important; color: #111 !important; border: 1px solid #bbb; border-radius: 0; box-shadow: none; }
+  .final-design-package .card .section-heading > span { color: #555 !important; }
+  .final-design-package .stat span, .final-design-package .form-note, .final-design-package .engineering-note, .final-design-package .check-row span { color: #333 !important; }
+  .final-design-package .stat b, .final-design-package .check-row b { color: #111 !important; }
+  .print-section { break-inside: avoid; page-break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #999; padding: 5px 7px; text-align: left; color: #111 !important; }
+  th { font-weight: 700; }
+  .table-wrap { overflow: visible !important; }
+  .final-design-package .card { margin-bottom: 7mm; }
+  .final-design-package .page-header { color: #111 !important; }
+  .final-design-package .title { color: #111 !important; }
+}

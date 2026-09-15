@@ -110,6 +110,8 @@ export const calculateInfiltrationLoad = ({
   const moistAirMassFlowKgS = AIR_DENSITY_KG_M3 * airflowM3PerS;
   const dryAirMassFlowKgS = moistAirMassFlowKgS / (1 + outdoorW);
 
+  // Keep infiltration behavior consistent with ventilation: negative sensible
+  // or total values are valid when outdoor air reduces the room cooling load.
   const sensibleW =
     moistAirMassFlowKgS *
     CP_AIR_KJ_KG_K *
