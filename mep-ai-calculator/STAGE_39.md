@@ -23,7 +23,14 @@ It adds a review gate only. A reference integrity problem becomes `REVIEW_REQUIR
 - Existing draft PR #2 remains unmerged.
 
 ## Validation status
-Stage 39 validation is registered in the main runner. CI must confirm the complete suite, including the new `REFREV` group, before this stage is considered validation-complete.
+Stage 39 is validation-complete on the development branch.
+
+CI run `34934215125` passed:
+- Engineering validation: **394/394 PASS**
+- `REFREV-001` through `REFREV-008`: **8/8 PASS**
+- Production build: **PASS**
+
+The first CI attempt failed only because the new adapter imported `referenceTraceIntegrity.js` from the wrong directory. The import path was corrected, and the subsequent CI run passed the full suite.
 
 ## Next stage
-After Stage 39 CI is confirmed, proceed to the next engineering workflow capability. Production promotion remains a separate release decision.
+Proceed to Stage 40 only after treating this Stage 39 implementation as the current development baseline. Production promotion remains a separate release decision.
