@@ -1,10 +1,6 @@
 import { buildReferenceTraceForRoom } from "../engineering/reference/referenceResultIntegration.js";
 import { validateReferenceTraceIntegrity } from "../engineering/reference/referenceTraceIntegrity.js";
 
-const assert = (condition, message) => {
-  if (!condition) throw new Error(message);
-};
-
 const appliedReference = {
   inputs: {
     wall: { uValueWm2K: 0.704, construction: "Steel-framed wall" },
@@ -22,54 +18,45 @@ const appliedReference = {
   },
 };
 
-export function runReferenceTraceIntegrityTests() {
-  let passed = 0;
+export const runReferenceTraceIntegrityTests = () => {
+  const results = [];
+  const check = (id, name, condition) => results.push({ id, name, passed: Boolean(condition) });
   const finalInputs = {
     wall: { uValueWm2K: 0.704, construction: "Steel-framed wall" },
     windows: { uValueWm2K: 5.9, shgc: 0.25, glazing: "Engineer-selected low-e glazing" },
   };
   const trace = buildReferenceTraceForRoom({ engineeringInputs: finalInputs, appliedReference });
 
-  let check = validateReferenceTraceIntegrity({ trace, appliedReference, finalInputs });
-  assert(check.passed, `REFGATE-001: valid trace should pass (${check.errors.join("; ")})`);
-  passed += 1;
-
-  check = validateReferenceTraceIntegrity({ trace: null, appliedReference: null, finalInputs });
-  assert(check.passed, "REFGATE-002: no applied reference should allow a null trace");
-  passed += 1;
-
-  check = validateReferenceTraceIntegrity({ trace: null, appliedReference, finalInputs });
-  assert(!check.passed, "REFGATE-003: an applied reference without a trace must fail");
-  passed += 1;
+  let validation = validateReferenceTraceIntegrity({ trace, appliedReference, finalInputs });
+  check("REFGATE-001", "Valid trace passes integrity validation", validation.passed);
+  validation = validateReferenceTraceIntegrity({ trace: null, appliedReference: null, finalInputs });
+  check("REFGATE-002", "No applied reference permits a null trace", validation.passed);
+  validation = validateReferenceTraceIntegrity({ trace: null, appliedReference, finalInputs });
+  check("REFGATE-003", "Applied reference without trace fails validation", !validation.passed);
 
   const tamperedFinal = JSON.parse(JSON.stringify(finalInputs));
   tamperedFinal.windows.uValueWm2K = 4.2;
-  check = validateReferenceTraceIntegrity({ trace, appliedReference, finalInputs: tamperedFinal });
-  assert(!check.passed && check.errors.some((error) => error.includes("Window U-value")), "REFGATE-004: changed final input must invalidate the trace");
-  passed += 1;
+  validation = validateReferenceTraceIntegrity({ trace, appliedReference, finalInputs: tamperedFinal });
+  check("REFGATE-004", "Changed final input invalidates the trace", !validation.passed && validation.errors.some((error) => error.includes("Window U-value")));
 
   const tamperedTrace = JSON.parse(JSON.stringify(trace));
   tamperedTrace.referenceBasis.datasetVersion = "0.0.0";
-  check = validateReferenceTraceIntegrity({ trace: tamperedTrace, appliedReference, finalInputs });
-  assert(!check.passed && check.errors.includes("Dataset version provenance mismatch"), "REFGATE-005: dataset provenance tampering must fail");
-  passed += 1;
+  validation = validateReferenceTraceIntegrity({ trace: tamperedTrace, appliedReference, finalInputs });
+  check("REFGATE-005", "Dataset provenance tampering fails validation", !validation.passed && validation.errors.includes("Dataset version provenance mismatch"));
 
   const overrideTrace = JSON.parse(JSON.stringify(trace));
   overrideTrace.engineerOverrideWins = false;
-  check = validateReferenceTraceIntegrity({ trace: overrideTrace, appliedReference, finalInputs });
-  assert(!check.passed && check.errors.includes("engineerOverrideWins does not match override state"), "REFGATE-006: override state must be consistent");
-  passed += 1;
+  validation = validateReferenceTraceIntegrity({ trace: overrideTrace, appliedReference, finalInputs });
+  check("REFGATE-006", "Override state must remain internally consistent", !validation.passed && validation.errors.includes("engineerOverrideWins does not match override state"));
 
   const missingFieldTrace = JSON.parse(JSON.stringify(trace));
   missingFieldTrace.fields = missingFieldTrace.fields.filter((field) => field.label !== "Window SHGC");
-  check = validateReferenceTraceIntegrity({ trace: missingFieldTrace, appliedReference, finalInputs });
-  assert(!check.passed && check.errors.some((error) => error.includes("Window SHGC")), "REFGATE-007: missing trace fields must fail");
-  passed += 1;
+  validation = validateReferenceTraceIntegrity({ trace: missingFieldTrace, appliedReference, finalInputs });
+  check("REFGATE-007", "Missing trace fields fail validation", !validation.passed && validation.errors.some((error) => error.includes("Window SHGC")));
 
   const traceBefore = JSON.stringify(trace);
   validateReferenceTraceIntegrity({ trace, appliedReference, finalInputs });
-  assert(JSON.stringify(trace) === traceBefore, "REFGATE-008: integrity validation must not mutate trace data");
-  passed += 1;
+  check("REFGATE-008", "Integrity validation does not mutate trace data", JSON.stringify(trace) === traceBefore);
 
-  return { passed, total: 8 };
-}
+  return results;
+};
