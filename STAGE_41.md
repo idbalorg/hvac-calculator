@@ -15,7 +15,7 @@ Connect the Stage 40 engineering decision output to the existing explicit engine
 
 ## Validation
 
-The Stage 41 validation group contains 8 regression cases covering pending approval, explicit approval, unresolved reference exceptions, documented overrides, critical decision blocking, invalid overrides, and input immutability.
+The Stage 41 validation group contains 8 regression cases covering pending approval, explicit approval, unresolved reference exceptions, documented overrides, critical decision blocking, invalid overrides, and input immutability. CI validation completed with 415/415 tests passing and the production build passing (Engineering Validation run #273).
 
 Production remains untouched.
 
