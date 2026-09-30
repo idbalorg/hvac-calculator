@@ -1,0 +1,157 @@
+/**
+ * HAP 6.3 reference benchmark: Cotonou Cajehoun, BLD2.
+ *
+ * Source: user-supplied HAP report, 5 pages.
+ * This fixture records captured reference inputs/outputs only.
+ * It must not be interpreted as a claim that the current room-load engine
+ * should reproduce HAP until the missing calculation-method inputs are mapped.
+ */
+export const COTONOU_BLD2_HAP_REFERENCE = {
+  id: "COTONOU-BLD2-001",
+  source: {
+    software: "Carrier HAP 6.3",
+    report: "User-supplied HAP BLD2 report",
+    location: "Cotonou Cajehoun, Benin",
+  },
+  building: {
+    type: "Office",
+    subcategory: "Low-rise (1–2 stories)",
+    identifier: "BLD2",
+    shape: "Rectangular",
+    floors: 1,
+    oneZonePerFloor: true,
+    lengthM: 6,
+    widthM: 5,
+    floorAreaM2: 30,
+    levelToLevelHeightM: 2.9,
+    floorToCeilingHeightM: 2.9,
+    grossWallAreaM2: 63.8,
+    windowAreaM2: 12.8,
+    windowAreaPercentOfWall: 20,
+  },
+  internalLoads: {
+    occupancyDensityM2PerPerson: 18.58,
+    activity: "Office work",
+    lightingPowerDensityWPerM2: 6.89,
+    electricalEquipmentPowerDensityWPerM2: 8.07,
+    infiltrationACH: 0,
+  },
+  ventilation: {
+    standard: "ASHRAE 62.1-2019",
+    outdoorAirPerPersonLps: 2.5,
+    outdoorAirPerAreaLpsM2: 0.30,
+    designOutdoorAirflowLps: 13,
+  },
+  envelope: {
+    wall: {
+      construction: "2019 Zone 1 Above-grade steel-framed wall",
+      uValueWPerM2K: 0.704,
+    },
+    roof: {
+      construction: "2019 Zone 2 Insulation entirely above deck",
+      uValueWPerM2K: 0.221,
+    },
+    window: {
+      construction: "2019 Zone 7 Fixed",
+      uValueWPerM2K: 1.647,
+      shgc: 0.400,
+    },
+  },
+  airSystem: {
+    name: "test system",
+    equipmentClass: "SPLT AHU",
+    type: "SZCAV",
+    sizingMethod: "Zone L/s = sum of space airflow rates; space L/s = individual peak space loads",
+  },
+  coolingReference: {
+    peakDateTime: "January 15:00",
+    outdoorDbC: 31.3,
+    outdoorWbC: 26.5,
+    enteringCoilDbC: 24.3,
+    enteringCoilWbC: 18.2,
+    leavingCoilDbC: 14.0,
+    leavingCoilWbC: 13.9,
+    resultingRhPercent: 54,
+    designSupplyTemperatureC: 14.4,
+    coilTotalW: 3464,
+    coilSensibleW: 2951,
+    coilLatentW: 513,
+    coilTotalDisplayedKw: 3.5,
+    coilPeakAirflowLps: 233,
+    coilShr: 0.852,
+    zoneSupplyAirflowLps: 233,
+    zoneSensibleW: 2613,
+    zoneLatentW: 100,
+    outdoorVentilationAirflowLps: 13,
+    systemSensibleW: 2943,
+    systemLatentW: 483,
+    thermostatCheck: "1/1 OK",
+    maxZoneTemperatureDeviationK: 0,
+  },
+  zoneHeatBalanceW: {
+    exteriorWallConvection: 983,
+    roofConvection: 568,
+    windowConvection: 383,
+    floor: 377,
+    overheadLighting: 129,
+    electricEquipment: 182,
+    peopleSensible: 35,
+    peopleLatent: 97,
+    zoneSensibleTotal: 2657,
+    zoneLatentTotal: 97,
+  },
+  psychrometrics: {
+    outdoorVentilationInlet: {
+      dryBulbC: 31.2,
+      humidityRatioKgPerKg: 0.02000,
+      airflowLps: 13,
+      co2Ppm: 400,
+      sensibleW: 115,
+      latentW: 383,
+    },
+    mixedAirOutlet: {
+      dryBulbC: 24.3,
+      humidityRatioKgPerKg: 0.01058,
+      airflowLps: 233,
+      co2Ppm: 972,
+    },
+    coolingCoilOutlet: {
+      dryBulbC: 14.0,
+      humidityRatioKgPerKg: 0.00986,
+      airflowLps: 233,
+      co2Ppm: 972,
+      sensibleW: 2951,
+      latentW: 513,
+    },
+    supplyFanOutlet: {
+      dryBulbC: 14.8,
+      humidityRatioKgPerKg: 0.00986,
+      airflowLps: 233,
+      co2Ppm: 972,
+      sensibleW: 215,
+    },
+    zoneAir: {
+      dryBulbC: 23.9,
+      humidityRatioKgPerKg: 0.01001,
+      airflowLps: 233,
+      co2Ppm: 1008,
+      sensibleW: 2613,
+      latentW: 100,
+    },
+    returnAir: {
+      dryBulbC: 23.9,
+      humidityRatioKgPerKg: 0.01003,
+    },
+    siteAltitudeM: 5.8,
+  },
+  fanReference: {
+    designAirflowLps: 233,
+    airflowPerFloorAreaLpsPerM2: 7.77,
+    motorBhp: 0.27,
+    motorKw: 0.21,
+    totalStaticPa: 497,
+  },
+  validationStatus: "REFERENCE_CAPTURED",
+  executionNote:
+    "Component comparison with the current room-load engine is pending because the HAP report does not provide the exact CLTD/solar inputs or enough schedule/method detail to reconstruct every component independently.",
+};
