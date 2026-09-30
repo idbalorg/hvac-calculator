@@ -16,12 +16,12 @@ const assertArray = (value, name) => {
   if (!Array.isArray(value) || value.length === 0) throw new Error(`${name} must contain at least one item`);
 };
 
+const assertArrayOrEmpty = (value, name) => {
+  if (!Array.isArray(value)) throw new Error(`${name} must be an array`);
+};
+
 const percentage = (value, base) => (base === 0 ? 0 : (value / base) * 100);
 
-/**
- * Builds a room-by-room HVAC schedule from upstream cooling-load and airside results.
- * No engineering values are invented here. All values are supplied by the design engine.
- */
 export const buildRoomSchedule = ({ rooms }) => {
   assertArray(rooms, "rooms");
 
@@ -54,10 +54,6 @@ export const buildRoomSchedule = ({ rooms }) => {
   });
 };
 
-/**
- * Builds an equipment schedule. Capacity, airflow and ESP are selection outputs,
- * while required values come from the engineering design calculations.
- */
 export const buildEquipmentSchedule = ({ equipment }) => {
   assertArray(equipment, "equipment");
 
@@ -93,10 +89,12 @@ export const buildEquipmentSchedule = ({ equipment }) => {
 };
 
 /**
- * Builds a duct schedule from sized duct segments.
+ * Duct schedule is intentionally allowed to be empty. A direct-discharge HVAC
+ * arrangement has no supply-air duct network, so an empty duct schedule is a
+ * valid engineering outcome rather than an incomplete package.
  */
 export const buildDuctSchedule = ({ ducts }) => {
-  assertArray(ducts, "ducts");
+  assertArrayOrEmpty(ducts, "ducts");
 
   return ducts.map((duct, index) => {
     const ductId = duct.ductId ?? duct.id;
@@ -120,13 +118,10 @@ export const buildDuctSchedule = ({ ducts }) => {
   });
 };
 
-/**
- * Aggregates schedule values for the project/system summary.
- */
 export const summarizeSchedules = ({ rooms, equipment, ducts }) => {
   assertArray(rooms, "rooms");
   assertArray(equipment, "equipment");
-  assertArray(ducts, "ducts");
+  assertArrayOrEmpty(ducts, "ducts");
 
   return {
     roomCount: rooms.length,
