@@ -54,7 +54,21 @@ import { runReferenceAwareEngineeringApprovalTests } from "./referenceAwareEngin
 import { runCotonouHapBenchmarkTests } from "./cotonouHapBenchmark.test.js";
 import { runCotonouComponentMappingTests } from "./cotonouComponentMapping.test.js";
 
-const expandGroupedTests = (groupId, groupName, runGroup) => runGroup().map((result) => ({ id: result.id, name: result.name, run: () => { if (!result.passed) throw new Error(result.error || `${result.id} failed`); return result; }, groupId, groupName }));
+const expandGroupedTests = (groupId, groupName, runGroup) => {
+  const groupResults = runGroup();
+  const results = Array.isArray(groupResults) ? groupResults : [groupResults];
+
+  return results.map((result) => ({
+    id: result.id,
+    name: result.name,
+    run: () => {
+      if (!result.passed) throw new Error(result.error || `${result.id} failed`);
+      return result;
+    },
+    groupId,
+    groupName,
+  }));
+};
 
 export const runValidation = () => {
   const tests = [
